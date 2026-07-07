@@ -1,0 +1,34 @@
+# Veri dosyaları (büyük, repoya commit edilmez)
+data/
+*.csv
+*.log
+*.npz
+*.gz
+*.zip
+*.tar
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Model ağırlıkları
+*.pt
+*.pth
+models/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
