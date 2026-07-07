@@ -2,7 +2,7 @@
 
 ## NLP Projeleri
 
-### 01-tf-idf — TF-IDF: Teoriden Pratiğe
+### tf-idf — TF-IDF: Teoriden Pratiğe
 
 TF-IDF (Term Frequency — Inverse Document Frequency) konusunu, en temel matematiksel formüllerden gerçek veri ile sınıflandırmaya ve boyut indirgeme analizine kadar kapsamlı bir şekilde ele alan tek dosyalık bir proje.
 
@@ -15,7 +15,7 @@ TF-IDF (Term Frequency — Inverse Document Frequency) konusunu, en temel matema
 - TF-IDF limitleri (semantik, bağlam, seyreklik, boyut laneti)
 
 ```bash
-cd nlp/01-tf-idf
+cd nlp/tf-idf
 pip install -r requirements.txt
 python tfidf_kapsamli.py
 ```
