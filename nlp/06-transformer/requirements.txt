@@ -1,0 +1,9 @@
+torch>=2.0
+scikit-learn
+pandas
+matplotlib
+seaborn
+tqdm
+numpy
+datasets
+huggingface_hub
