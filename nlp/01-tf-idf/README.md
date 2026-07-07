@@ -59,7 +59,7 @@ Script çalıştığında:
 ## Proje Yapısı
 
 ```
-nlp/tf-idf/
+nlp/01-tf-idf/
 ├── tfidf_kapsamli.py        # Ana Python scripti
 ├── README.md                # Bu dosya
 ├── requirements.txt         # Bağımlılıklar

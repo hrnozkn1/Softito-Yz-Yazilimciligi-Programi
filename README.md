@@ -2,20 +2,21 @@
 
 ## NLP Projeleri
 
-### tf-idf — TF-IDF: Teoriden Pratiğe
+| # | Proje | Durum |
+|---|-------|-------|
+| 01 | [tf-idf](nlp/01-tf-idf/) — TF-IDF: Teoriden Pratiğe | ✅ Tamamlandı |
+| 02 | word-embeddings — Word2Vec, GloVe, FastText | 📋 Hazırlanıyor |
+| 03 | rnn — Vanilla RNN | 📋 Hazırlanıyor |
+| 04 | lstm — LSTM | 📋 Hazırlanıyor |
+| 05 | attention — Attention Mekanizması | 📋 Hazırlanıyor |
+| 06 | transformer — Transformer Mimarisi | 📋 Hazırlanıyor |
 
-TF-IDF (Term Frequency — Inverse Document Frequency) konusunu, en temel matematiksel formüllerden gerçek veri ile sınıflandırmaya ve boyut indirgeme analizine kadar kapsamlı bir şekilde ele alan tek dosyalık bir proje.
+### 01-tf-idf — TF-IDF: Teoriden Pratiğe
 
-**İçerik:**
-- Manuel TF-IDF hesaplama (4 Türkçe dokümanla adım adım)
-- Scikit-learn ile TF-IDF + görselleştirme
-- 20 Newsgroups ile gerçek veri uygulaması
-- TF-IDF + Logistic Regression ile sınıflandırma (%98 doğruluk)
-- SVD ile boyut indirgeme ve performans takası analizi
-- TF-IDF limitleri (semantik, bağlam, seyreklik, boyut laneti)
+TF-IDF konusunu, en temel matematiksel formüllerden gerçek veri ile sınıflandırmaya ve boyut indirgeme analizine kadar kapsamlı şekilde ele alan tek dosyalık bir proje.
 
 ```bash
-cd nlp/tf-idf
+cd nlp/01-tf-idf
 pip install -r requirements.txt
 python tfidf_kapsamli.py
 ```
