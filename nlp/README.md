@@ -1,75 +1,101 @@
-# NLP Projeleri — Softito Yapay Zeka Programı
+# NLP Projeleri
 
-NLP temellerinden Transformer mimarisine uzanan 6 aşamalı bir seri. Her proje tek bir `.py` dosyasıdır: çalıştır, görselleri oluştur, sonuçları karşılaştır.
+NLP'nin temel kavramlarından başlayıp günümüz mimarilerine uzanan 6 proje. Her biri bağımsız, tek dosyalık bir Python scripti.
 
-## Seri İçeriği
+## İçindekiler
 
-| # | Proje | Veri | Model |
-|---|-------|------|-------|
-| 01 | [`01-tf-idf/`](01-tf-idf/) | TTC-4900 (Türkçe, 7 sınıf) | TF-IDF + LogisticRegression |
-| 02 | [`02-word-embeddings/`](02-word-embeddings/) | TTC-4900 (Türkçe, 7 sınıf) | Word2Vec, FastText, TF-IDF karşılaştırması + t-SNE |
-| 03 | [`03-rnn/`](03-rnn/) | TTC-4900 (Türkçe, 7 sınıf) | Vanilla RNN (PyTorch `nn.RNN`) |
-| 04 | [`04-lstm/`](04-lstm/) | AG News (İngilizce, 4 sınıf, 120K) | LSTM (PyTorch `nn.LSTM`) |
-| 05 | [`05-attention/`](05-attention/) | AG News (İngilizce, 4 sınıf, 120K) | BiLSTM + Additive Attention |
-| 06 | [`06-transformer/`](06-transformer/) | AG News (İngilizce, 4 sınıf, 120K) | Transformer Encoder (`nn.TransformerEncoder`) |
+1. [TF-IDF - Kelimeleri Sayıya Dökmek](#01-tf-idf)
+2. [Word Embeddings - Anlamsal Gömmeler](#02-word-embeddings)
+3. [Vanilla RNN - İlk Tekrarlayan Ağ](#03-vanilla-rnn)
+4. [LSTM - Uzun Dönem Hafıza](#04-lstm)
+5. [LSTM + Attention - Odaklanma Mekanizması](#05-lstm--attention)
+6. [Transformer - Self-Attention ile Çağ Atlama](#06-transformer)
 
-## Mimari Gelişimi
+---
 
-```
-TF-IDF (istatistiksel)
-   ↓
-Word2Vec / FastText (gömmeler)
-   ↓
-Vanilla RNN (tekrarlayan, vanishing gradient)
-   ↓
-LSTM (vanishing gradient çözümü, uzun dönem hafıza)
-   ↓
-LSTM + Attention (tüm çıktılara odaklanma)
-   ↓
-Transformer (self-attention, paralel işleme, sıra dışı)
-```
+### 01 - TF-IDF
+
+**Dosya:** [`01-tf-idf/tfidf_kapsamli.py`](01-tf-idf/tfidf_kapsamli.py)
+
+TF-IDF'in ne olduğundan başlayıp LogisticRegression ile sınıflandırmaya, boyut indirgemeye ve kelime bulutuna kadar her şeyi tek bir scriptte anlatır. Türkçe haber verisi (TTC-4900) üzerinde çalışır.
+
+### 02 - Word Embeddings
+
+**Dosya:** [`02-word-embeddings/word_embeddings_karsilastirma.py`](02-word-embeddings/word_embeddings_karsilastirma.py)
+
+Word2Vec (CBOW + Skip-gram), FastText ve TF-IDF'i aynı veri üzerinde karşılaştırır. t-SNE ile kelime vektörlerini 2 boyuta indirip görselleştirir. Hangi yöntemin ne zaman işe yaradığını gösterir.
+
+### 03 - Vanilla RNN
+
+**Dosya:** [`03-rnn/rnn_haber_siniflandirma.py`](03-rnn/rnn_haber_siniflandirma.py)
+
+PyTorch ile ilk sinir ağı modeli. `nn.RNN` kullanarak Türkçe haberleri 7 kategoriden birine sınıflandırır. **%41 accuracy** — random'dan (%14) iyi, ancak Vanilla RNN'in sınırlarını (vanishing gradient) gösterir.
+
+### 04 - LSTM
+
+**Dosya:** [`04-lstm/lstm_siniflandirma.py`](04-lstm/lstm_siniflandirma.py)
+
+Vanishing gradient sorununu çözen LSTM mimarisi. AG News verisiyle 4 sınıflı İngilizce haber sınıflandırması. 2 katmanlı LSTM, dropout ve gradient clipping ile daha stabil eğitim.
+
+### 05 - LSTM + Attention
+
+**Dosya:** [`05-attention/attention_siniflandirma.py`](05-attention/attention_siniflandirma.py)
+
+Çift yönlü LSTM'in üstüne Bahdanau (additive) attention eklenir. Model artık son hidden state yerine tüm çıktılara bakar ve hangi tokenlara odaklandığını gösteren bir attention ağırlık grafiği basar.
+
+### 06 - Transformer
+
+**Dosya:** [`06-transformer/transformer_siniflandirma.py`](06-transformer/transformer_siniflandirma.py)
+
+Self-attention mekanizması ile çalışan Transformer Encoder. RNN'lerin aksine diziyi paralel işler, positional encoding ile sıra bilgisini korur. `nn.TransformerEncoder` + adaptive pooling ile sınıflandırma.
+
+---
 
 ## Veri Setleri
 
-| Veri | Projeler | Dil | Sınıf | Boyut |
-|------|----------|-----|-------|-------|
-| [TTC-4900](https://www.kaggle.com/datasets/savasy/ttc4900) | 01, 02, 03 | 🇹🇷 Türkçe | 7 | 4.900 |
-| [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) | 04, 05, 06 | 🇬🇧 İngilizce | 4 | 120.000 |
+### TTC-4900 (Türkçe)
 
-İlk 3 proje Türkçe haber verisiyle (TTC-4900) yapıldı; son 3 proje uluslararası benchmark (AG News) ile devam etti.
+7 kategoriden oluşan dengeli bir Türkçe haber verisi. Her kategoride 700 haber, toplam 4.900 örnek.
 
-## Nasıl Çalıştırılır
+| Kategori | ID |
+|----------|----|
+| Siyaset | 0 |
+| Ekonomi | 1 |
+| Kültür | 2 |
+| Sağlık | 3 |
+| Spor | 4 |
+| Teknoloji | 5 |
+| Dünya | 6 |
+
+- **Kaynak:** [Kaggle](https://www.kaggle.com/datasets/savasy/ttc4900) / [HuggingFace](https://huggingface.co/datasets/savasy/ttc4900)
+
+### AG News (İngilizce)
+
+4 kategorili, 120.000 haberlik uluslararası benchmark verisi.
+
+| Kategori | ID |
+|----------|----|
+| World | 0 |
+| Sports | 1 |
+| Business | 2 |
+| Sci/Tech | 3 |
+
+- **Kaynak:** [HuggingFace](https://huggingface.co/datasets/fancyzhx/ag_news)
+
+---
+
+## Çalıştırma
 
 ```bash
-# Sanal ortam (Python 3.12+)
-source /tmp/venv312/bin/activate
-
-# Projelerden birine gir, çalıştır
+# Örnek: LSTM projesini çalıştırma
 cd nlp/04-lstm
 pip install -r requirements.txt
 python lstm_siniflandirma.py
 ```
 
-Her script:
-1. Veriyi `data/` klasöründe arar; bulamazsa indirme talimatı gösterir + sentetik fallback sunar
-2. EDA (sınıf dağılımı, token histogramı, sık kelimeler) → `figures/01_eda.png`
-3. Model eğitimi ve değerlendirme
-4. Training curves → `figures/02_training_curves.png`
-5. Confusion matrix → `figures/03_confusion_matrix.png`
-
-## Klasör Yapısı (Her Proje İçin)
-
-```
-nlp/XX-proje/
-├── README.md              # Proje dokümantasyonu
-├── requirements.txt       # Bağımlılıklar
-├── .gitignore             # data/ hariç
-├── data/README.md         # Veri indirme talimatı
-├── figures/               # Görsel çıktılar
-└── proje_adi.py           # Ana script
-```
+Her script kendi `requirements.txt`'sini taşır. Veri `data/` klasöründe aranır; bulunamazsa indirme adresi gösterilir ve sentetik veriyle fallback yapılır. `data/` repoya dahil değildir — herkes kendi indirir.
 
 ## Gereksinimler
 
-- Python 3.12+ (gensim için Python <3.14 gerekir)
-- torch, scikit-learn, pandas, matplotlib, seaborn, tqdm, numpy, datasets
+- Python 3.12+ (gensim uyumsuzluğu nedeniyle 3.14 önerilmez)
+- PyTorch, scikit-learn, pandas, matplotlib, seaborn, tqdm, datasets, numpy
