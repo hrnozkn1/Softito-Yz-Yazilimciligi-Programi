@@ -1,8 +1,8 @@
-# Softito YZ Yazılımcılığı Programı — NLP
+# Softito YZ Yazılımcılığı Programı
 
-NLP'ye sıfırdan başlayıp Transformer'a kadar uzanan 6 aşamalı bir seri. Her proje bağımsız çalışan tek bir Python scripti: çalıştır, eğit, grafikleri gör, karşılaştır.
+NLP (Doğal Dil İşleme) ve ML (Makine Öğrenmesi) alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
 
-## Projeler
+## NLP Projeleri
 
 | # | Proje | Ne Öğretir? | Veri Seti | Model |
 |---|-------|-------------|-----------|-------|
@@ -13,6 +13,20 @@ NLP'ye sıfırdan başlayıp Transformer'a kadar uzanan 6 aşamalı bir seri. He
 | 05 | [LSTM + Attention](nlp/05-attention/) | Modelin hangi kelimelere odaklandığını görmek | AG News | BiLSTM + Bahdanau Attention |
 | 06 | [Transformer](nlp/06-transformer/) | Self-attention, paralel işleme, sıra bağımsızlık | AG News | `nn.TransformerEncoder` |
 
+## ML Projeleri
+
+| # | Proje | Ne Öğretir? | Veri Seti | Model/Yöntem |
+|---|-------|-------------|-----------|-------------|
+| 01 | [Futbolcu Kümeleme](ml/01-futbolcu-kumeleme/) | Denetimsiz öğrenme, kümeleme analizi | Futbolcu verileri | K-Means, Hiyerarşik Kümeleme, GMM, PCA |
+| 02 | [Hava Durumu RNN](ml/02-hava-durumu-rnn/) | Zaman serisi tahmini, RNN | Open-Meteo API (İstanbul sıcaklık) | `nn.RNN` (PyTorch) |
+| 03 | [Kalp Hastalığı Tahmini](ml/03-kalp-hastaligi-tahmin/) | Sınıflandırma modelleri karşılaştırması | Kalp hastalığı verisi | Logistic Regression, SVM |
+| 04 | [Araba Fiyat Regresyonu](ml/04-araba-fiyat-regresyon/) | Regresyon analizi, aykırı değer temizliği | Car Dekho | Simple/Multiple Linear Regression |
+| 05 | [Spotify Churn EDA](ml/05-spotify-churn-eda/) | Keşifçi veri analizi (EDA) | Spotify müşteri verisi | EDA (Pandas, Seaborn) |
+| 06 | [Su Kalitesi Sınıflandırması](ml/06-su-kalitesi-siniflandirma/) | KNN ve Naive Bayes karşılaştırması | Water Potability | KNN, Gaussian Naive Bayes |
+| 07 | [Telefon Fiyat Sınıflandırması](ml/07-telefon-fiyat-siniflandirma/) | Çok sınıflı sınıflandırma | Telefon özellikleri | Decision Tree, Random Forest |
+| 08 | [Telekom Churn XGBoost](ml/08-telekom-churn-xgboost/) | Müşteri kaybı tahmini, hiperparametre optimizasyonu | Telco müşteri verisi | AdaBoost, XGBoost, GridSearchCV |
+| 09 | [VADER Duygu Analizi](ml/09-vader-duygu-analizi/) | Kural tabanlı duygu analizi | IMDB Film Yorumları | VADER (NLTK) |
+
 ### Mimari Gelişimi
 
 ```
@@ -22,15 +36,22 @@ TF-IDF ──→ Word2Vec ──→ RNN ──→ LSTM ──→ LSTM+Attn ─�
 
 ### Kullanılan Veri Setleri
 
-| Veri Seti | Dil | Sınıflar | Örnek Sayısı | Kullanıldığı Projeler |
-|-----------|-----|----------|-------------|----------------------|
-| [TTC-4900](https://www.kaggle.com/datasets/savasy/ttc4900) | 🇹🇷 Türkçe | siyaset, ekonomi, kültür, sağlık, spor, teknoloji, dünya | 4.900 | 01, 02, 03 |
-| [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) | 🇬🇧 İngilizce | World, Sports, Business, Sci/Tech | 120.000 | 04, 05, 06 |
+| Veri Seti | Alan | Sınıflar | Örnek Sayısı | Kullanıldığı Projeler |
+|-----------|------|----------|-------------|----------------------|
+| [TTC-4900](https://www.kaggle.com/datasets/savasy/ttc4900) | NLP 🇹🇷 | siyaset, ekonomi, kültür, sağlık, spor, teknoloji, dünya | 4.900 | NLP 01, 02, 03 |
+| [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) | NLP 🇬🇧 | World, Sports, Business, Sci/Tech | 120.000 | NLP 04, 05, 06 |
+| Car Dekho | ML 🚗 | - (regresyon) | ~4.000 | ML 04 |
+| Spotify Müşteri | ML 🎵 | Churn/Not Churn | 8.000 | ML 05 |
+| Water Potability | ML 💧 | Potable/Not Potable | ~3.200 | ML 06 |
+| Telefon Özellikleri | ML 📱 | 4 fiyat segmenti | 2.000 | ML 07 |
+| Telco Müşteri | ML 📞 | Churn/Not Churn | ~7.000 | ML 08 |
+| IMDB Film Yorumları | ML 🎬 | Pozitif/Negatif | 40.000 | ML 09 |
 
-TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News ise uluslararası bir benchmark — bu sayede ilk 3 projede Türkçe NLP deneyimi kazanılır, sonraki 3 projede daha büyük bir veriyle mimariler karşılaştırılır.
+TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News ise uluslararası bir benchmark. ML projeleri ise çeşitli alanlardan gerçek dünya verileriyle çalışır.
 
 ## Nasıl Çalıştırılır
 
+### NLP Projeleri (Python script)
 ```bash
 git clone https://github.com/hrnozkn1/Softito-Yz-Yazilimciligi-Programi.git
 cd Softito-Yz-Yazilimciligi-Programi/nlp/04-lstm
@@ -44,25 +65,41 @@ Her script çalıştırıldığında:
 3. Modeli eğitir ve her epoch sonu accuracy + F1 gösterir
 4. Eğitim eğrilerini ve confusion matrix'i `figures/` klasörüne kaydeder
 
+### ML Projeleri (Jupyter Notebook)
+```bash
+cd Softito-Yz-Yazilimciligi-Programi/ml/04-araba-fiyat-regresyon
+pip install pandas numpy matplotlib seaborn scikit-learn
+jupyter notebook
+```
+
+Notebook'u açıp hücreleri sırayla çalıştırın. Her notebook bağımsızdır, veri setleri kendi klasöründe bulunur.
+
 ### Klasör Yapısı
 
 ```
-nlp/XX-proje/
-├── README.md
-├── requirements.txt
-├── .gitignore              # data/ hariç (gitignored)
-├── data/README.md          # veri seti bilgisi
-├── figures/                # çıktı grafikleri
-└── proje_adi.py            # tek dosya, çalıştır ve gör
+├── nlp/XX-proje/
+│   ├── README.md
+│   ├── requirements.txt
+│   ├── .gitignore              # data/ hariç (gitignored)
+│   ├── data/README.md          # veri seti bilgisi
+│   ├── figures/                # çıktı grafikleri
+│   └── proje_adi.py            # tek dosya, çalıştır ve gör
+│
+└── ml/XX-proje/
+    ├── README.md
+    ├── proje_adi.ipynb          # Jupyter Notebook
+    └── *.csv                    # veri setleri
 ```
 
 ## Gereksinimler
 
-- Python 3.12+ önerilir (gensim 3.14'te derlenmiyor)
-- PyTorch, scikit-learn, pandas, matplotlib, seaborn, tqdm, datasets, numpy
+- Python 3.10+ önerilir
+- PyTorch, scikit-learn, pandas, matplotlib, seaborn, tqdm, datasets, numpy, nltk
+- Jupyter Notebook (ML projeleri için)
 
 ## Notlar
 
-- 03-rnn (Vanilla RNN) test edildi ve sonuçları push edildi — %41 accuracy
-- 04-05-06 scriptleri hazır ancak eğitim tam sonuç için ~15-20 dk sürer (CPU'da çalıştırılmalı)
+- NLP: 03-rnn (Vanilla RNN) test edildi ve sonuçları push edildi — %41 accuracy
+- NLP: 04-05-06 scriptleri hazır ancak eğitim tam sonuç için ~15-20 dk sürer (CPU'da çalıştırılmalı)
 - GPU varsa `DEVICE` otomatik algılanır, eğitim çok daha hızlı olur
+- ML: Tüm projeler Jupyter Notebook formatındadır, her biri bağımsız çalışır
