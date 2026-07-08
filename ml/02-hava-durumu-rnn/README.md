@@ -45,10 +45,10 @@ Eğitim bittikten sonra test seti (verinin %20'si) üzerindeki tahminler, `MinMa
 
 ```bash
 # 1. Depoyu bilgisayarınıza klonlayın
-git clone [https://github.com/hrnozkn1/time-series-rnn-forecasting.git](https://github.com/hrnozkn1/time-series-rnn-forecasting.git)
+git clone https://github.com/hrnozkn1/Softito-Yz-Yazilimciligi-Programi.git
 
 # 2. Proje dizinine girin
-cd time-series-rnn-forecasting
+cd Softito-Yz-Yazilimciligi-Programi/ml/02-hava-durumu-rnn
 
 # 3. Gerekli kütüphaneleri yükleyin
 pip install torch pandas numpy matplotlib scikit-learn requests

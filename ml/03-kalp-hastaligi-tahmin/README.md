@@ -60,10 +60,10 @@ Projenizi yerelde çalıştırmak için aşağıdaki komutları sırasıyla term
 
 ```bash
 # 1. Depoyu bilgisayarınıza klonlayın
-git clone [https://github.com/hrnozkn1/traditional-ml-algorithms-benchmark.git](https://github.com/hrnozkn1/traditional-ml-algorithms-benchmark.git)
+git clone https://github.com/hrnozkn1/Softito-Yz-Yazilimciligi-Programi.git
 
 # 2. Proje dizinine girin
-cd traditional-ml-algorithms-benchmark
+cd Softito-Yz-Yazilimciligi-Programi/ml/03-kalp-hastaligi-tahmin
 
 # 3. Gerekli kütüphaneleri yükleyin
 pip install pandas numpy scikit-learn matplotlib seaborn

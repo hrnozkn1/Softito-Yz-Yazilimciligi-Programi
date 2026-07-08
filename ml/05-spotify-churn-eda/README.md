@@ -5,7 +5,7 @@ Bu proje, Spotify kullanıcılarının platformu terk etme (churn) eğilimlerini
 ## 📁 Proje Yapısı
 
 * `Spotify_Customer_Churn_Exploratory_Data_Analysis_(EDA).ipynb`: Veri analizi, görselleştirme ve istatistiksel çıkarımların yer aldığı ana Jupyter Notebook dosyası.
-* `datasets/spotify_churn_dataset.csv`: Analizde kullanılan, 8000 satır ve 12 özellikten oluşan Spotify kullanıcı verisi.
+* `spotify_churn_dataset.csv`: Analizde kullanılan, 8000 satır ve 12 özellikten oluşan Spotify kullanıcı verisi.
 
 ## 📊 Veri Seti Hakkında
 
@@ -34,4 +34,5 @@ Projeyi yerel bilgisayarınızda çalıştırmak için:
 
 1. Bu repoyu klonlayın:
    ```bash
-   git clone [https://github.com/KULLANICI_ADINIZ/REPO_ADINIZ.git](https://github.com/KULLANICI_ADINIZ/REPO_ADINIZ.git)
+   git clone https://github.com/hrnozkn1/Softito-Yz-Yazilimciligi-Programi.git
+   cd Softito-Yz-Yazilimciligi-Programi/ml/05-spotify-churn-eda

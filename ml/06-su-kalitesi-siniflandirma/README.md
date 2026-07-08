@@ -87,5 +87,5 @@ Yapılan testler sonucunda elde edilen baseline performans çıktıları şu şe
 
 1. Bu depoyu bilgisayarınıza klonlayın:
    ```bash
-   git clone [https://github.com/kullanici_adi/su-kalitesi-knn-vs-naive-bayes.git](https://github.com/kullanici_adi/su-kalitesi-knn-vs-naive-bayes.git)
-   cd su-kalitesi-knn-vs-naive-bayes
+   git clone https://github.com/hrnozkn1/Softito-Yz-Yazilimciligi-Programi.git
+   cd Softito-Yz-Yazilimciligi-Programi/ml/06-su-kalitesi-siniflandirma

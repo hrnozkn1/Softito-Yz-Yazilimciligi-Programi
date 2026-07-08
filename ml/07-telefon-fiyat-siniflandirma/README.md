@@ -68,9 +68,11 @@ Projede `train.csv` (eğitim ve doğrulama) ve `test.csv` (nihai değerlendirme)
 
 Bu not defterini çalıştırmak için aşağıdaki adımları izleyebilirsiniz:
 
-1. `train.csv` ve `test.csv` dosyalarını not defterinin bulunduğu dizine yerleştirin.
-2. Gerekli Python kütüphanelerini (`pandas`, `scikit-learn`, `matplotlib`, `seaborn`) yükleyin:
+1. `train.csv` ve `test.csv` dosyaları zaten proje klasöründe bulunmaktadır.
+2. Gerekli Python kütüphanelerini yükleyin:
 ```bash
 pip install pandas scikit-learn matplotlib seaborn
+```
+
 ## 📝 Lisans
 Bu proje [MIT](LICENSE) lisansı altında lisanslanmıştır.

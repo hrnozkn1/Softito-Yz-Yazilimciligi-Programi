@@ -2,11 +2,11 @@
 
 ## Proje Hakkında
 
-Bu proje, Natural Language Toolkit (NLTK) kütüphanesinin VADER (Valence Aware Dictionary and sEntiment Reasoner) aracını kullanarak IMDB film yorumlarının duygu analizini yapmaktadır. VADER, özellikle sosyal medya metinleri için optimize edilmiş, kural tabanlı bir duygu analiz modelidir. Bu çalışma, VADER'ın belirli bir veri seti üzerindeki performansını değerlendirmeyi, duygu skorlarının dağılımını görselleştirmeyi ve modelin güçlü/zayıf yönlerini analiz etmeyi amaçlamaktadır.
+Bu proje, NLTK kütüphanesinin VADER (Valence Aware Dictionary and sEntiment Reasoner) aracını kullanarak IMDB film yorumlarının duygu analizini yapmaktadır. VADER, özellikle sosyal medya metinleri için optimize edilmiş, kural tabanlı bir duygu analiz modelidir. Bu çalışma, VADER'ın belirli bir veri seti üzerindeki performansını değerlendirmeyi, duygu skorlarının dağılımını görselleştirmeyi ve modelin güçlü/zayıf yönlerini analiz etmeyi amaçlamaktadır.
 
 ## Veri Seti
 
-Analizde kullanılan veri seti, IMDB film yorumlarından oluşmaktadır ve `Train.csv` adlı dosyada bulunmaktadır. Her yorum için bir `text` (yorum metni) ve bir `label` (0: negatif, 1: pozitif) sütunu içermektedir. Veri seti, proje kapsamında `data/` dizini altına yerleştirilmiştir.
+Analizde kullanılan veri seti, IMDB film yorumlarından oluşmaktadır ve `Test.csv` adlı dosyada bulunmaktadır. Her yorum için bir `text` (yorum metni) ve bir `label` (0: negatif, 1: pozitif) sütunu içermektedir.
 
 ## Kurulum
 
@@ -14,21 +14,19 @@ Projeyi yerel olarak çalıştırmak için aşağıdaki adımları izleyin:
 
 1.  Depoyu klonlayın:
     ```bash
-    git clone https://github.com/KULLANICI_ADINIZ/PROJE_ADINIZ.git
-    cd PROJE_ADINIZ
+    git clone https://github.com/hrnozkn1/Softito-Yz-Yazilimciligi-Programi.git
+    cd Softito-Yz-Yazilimciligi-Programi/ml/09-vader-duygu-analizi
     ```
-2.  Gerekli kütüphaneleri yükleyin (önerilen Python sürümü 3.x):
+2.  Gerekli kütüphaneleri yükleyin:
     ```bash
-    pip install -r requirements.txt
+    pip install pandas nltk matplotlib seaborn
     ```
-    (`requirements.txt` dosyasını manuel olarak oluşturmanız gerekebilir. İçeriği `pandas`, `nltk`, `matplotlib`, `seaborn` olabilir.)
 3.  NLTK VADER sözlüğünü indirin (Python ortamınızda bir kez çalıştırın):
     ```python
     import nltk
     nltk.download('vader_lexicon')
     ```
-4.  `data/` dizini altına `Train.csv` dosyasını yerleştirin.
-5.  `notebooks/vader_sentiment_analysis.ipynb` Jupyter Notebook dosyasını açarak analizleri inceleyebilir ve çalıştırabilirsiniz.
+4.  `VADER_Duygu_Analizi_IMDB_Film_Yorumları.ipynb` dosyasını Jupyter Notebook ile açarak analizleri inceleyebilir ve çalıştırabilirsiniz.
 
 ## Analiz ve Sonuçlar
 

@@ -4,8 +4,7 @@ Bu proje, `players.csv` veri setinde yer alan futbolcuları yaş, mevki ve milli
 
 ## 📁 Proje Yapısı
 
-* `data/players.csv`: Analizde kullanılan ham futbolcu veri seti.
-* `futbolcu_kumeleme_analizi.ipynb`: Google Colab üzerinde geliştirilen; veri ön işleme, modelleme ve görselleştirme adımlarını içeren kod dosyası.
+* `futbolcu_kumeleme_analizi.ipynb`: Veri ön işleme, modelleme ve görselleştirme adımlarını içeren Jupyter Notebook.
 
 ## 🤖 Kullanılan Yöntemler ve Algoritmalar
 
