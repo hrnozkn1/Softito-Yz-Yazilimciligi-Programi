@@ -21,7 +21,7 @@ TF-IDF'in ne olduğundan başlayıp LogisticRegression ile sınıflandırmaya, b
 
 ### 02 - Word Embeddings
 
-**Dosya:** [`02-word-embeddings/word_embeddings_karsilastirma.py`](02-word-embeddings/word_embeddings_karsilastirma.py)
+**Dosya:** [`02-word-embeddings/word_embeddings_kapsamli.py`](02-word-embeddings/word_embeddings_kapsamli.py)
 
 Word2Vec (CBOW + Skip-gram), FastText ve TF-IDF'i aynı veri üzerinde karşılaştırır. t-SNE ile kelime vektörlerini 2 boyuta indirip görselleştirir. Hangi yöntemin ne zaman işe yaradığını gösterir.
 

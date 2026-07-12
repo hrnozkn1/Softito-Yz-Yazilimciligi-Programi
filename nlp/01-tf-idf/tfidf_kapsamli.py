@@ -4,16 +4,11 @@ tfidf_kapsamli.py
 =================
 TF-IDF: Teoriden Pratiğe — Manuel Hesaplama, Scikit-learn, Sınıflandırma ve SVD Analizi
 
-Akış:
-  1) Kütüphaneler ve sabitler
-  2) BÖLÜM 1 — Teori: TF-IDF bileşenleri
-  3) BÖLÜM 2 — Manuel Hesaplama: 4 Türkçe dokümanla adım adım TF-IDF
-  4) BÖLÜM 3 — Scikit-learn ile TF-IDF + Görselleştirme
-  5) BÖLÜM 4 — 20 Newsgroups: Gerçek veri + Cosine Similarity
-  6) BÖLÜM 5 — Sınıflandırma: TF-IDF + Logistic Regression
-  7) BÖLÜM 6 — SVD ile Boyut İndirgeme ve Performans Takası
-  8) BÖLÜM 7 — TF-IDF Limitleri (Semantik, Bağlam, Seyreklik, Boyut Laneti)
-  9) BÖLÜM 8 — Örnek Tahminler ve Özet
+Bu script, TF-IDF konusunu en temel matematiksel formüllerden başlayarak
+gerçek Türkçe haber verisi üzerinde sınıflandırmaya ve boyut indirgeme
+analizine kadar adım adım anlatır.
+
+Kullanılan Veri Seti: TTC-4900 (7 kategoride 4.900 Türkçe haber)
 
 Çalıştırma:
   python tfidf_kapsamli.py
@@ -24,9 +19,7 @@ Akış:
 
 import math
 import os
-import sys
 import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -38,7 +31,6 @@ warnings.filterwarnings("ignore")
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.datasets import fetch_20newsgroups
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.decomposition import TruncatedSVD
@@ -46,143 +38,217 @@ from sklearn.pipeline import make_pipeline
 from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
 from scipy.spatial.distance import pdist
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    # tqdm yoksa boş bir tqdm tanımla, kod sorunsuz çalışsın
+    def tqdm(x, desc=""): return x
+    print("(!) tqdm yüklü değil, ilerleme çubuğu gösterilmeyecek.")
+    print("    Yüklemek için: pip install tqdm")
+
 # ======================================================================
-# SABITLER
+# AYARLAR
 # ======================================================================
 FIG_DIR = "figures"
 RANDOM_STATE = 42
 plt.rcParams["figure.dpi"] = 120
 
+# TTC-4900 kategori isimleri (Türkçe)
+TTC4900_KATEGORILER = [
+    "siyaset", "dunya", "ekonomi", "kultur", "saglik", "spor", "teknoloji"
+]
+
 
 # ======================================================================
-# YARDIMCI FONKSIYONLAR
+# YARDIMCI FONKSİYONLAR
 # ======================================================================
-def baslik_yaz(metin):
+
+def baslik(metin):
+    """Konsola bölüm başlığı yazdırır."""
     print("\n" + "=" * 70)
-    print(metin)
+    print(f"  {metin}")
     print("=" * 70)
 
 
+def alt_baslik(metin):
+    """Konsola alt başlık yazdırır."""
+    print("\n" + "-" * 50)
+    print(f"  {metin}")
+    print("-" * 50)
+
+
+def figuru_kaydet(isim):
+    """Mevcut matplotlib figürünü figures/ klasörüne kaydeder."""
+    os.makedirs(FIG_DIR, exist_ok=True)
+    yol = os.path.join(FIG_DIR, isim)
+    plt.savefig(yol, bbox_inches="tight")
+    plt.close()
+    print(f"  [kaydedildi] {yol}")
+
+
 # ======================================================================
-# BÖLÜM 1 — TEORI
+# BÖLÜM 1 — TEORİ
 # ======================================================================
-def bolum1_teori():
-    baslik_yaz("BÖLÜM 1: TF-IDF TEORISI VE BILESENLERI")
+
+def teori():
+    """
+    TF-IDF'in matematiksel formüllerini ve yorumunu konsola yazdırır.
+    Henüz kod yok — sadece teori.
+    """
+    baslik("1. TF-IDF TEORİSİ VE FORMÜLLERİ")
+
     print("""
-TF-IDF = Term Frequency x Inverse Document Frequency
+  TF-IDF = Term Frequency × Inverse Document Frequency
 
-TF (Term Frequency) - Terim Sikligi:
-    Bir terimin bir dokümanda ne siklikta geçtigini gösterir.
-    TF(t,d) = terimin dokümanda geçme sayisi / dokümandaki toplam terim sayisi
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ TF (Term Frequency) — Terim Sıklığı                                 │
+  │   Bir kelimenin bir dokümanda ne sıklıkta geçtiğini ölçer.          │
+  │                                                                     │
+  │   TF(t,d) = (t'nin d'de geçme sayısı) / (d'deki toplam kelime)     │
+  │                                                                     │
+  │   Örnek: 5 kelimelik bir cümlede "kedi" 1 kez geçiyorsa             │
+  │          TF("kedi") = 1/5 = 0.2                                     │
+  └─────────────────────────────────────────────────────────────────────┘
 
-IDF (Inverse Document Frequency) - Ters Doküman Sikligi:
-    Bir terimin tüm dokümanlarda ne kadar nadir geçtigini ölçer.
-    IDF(t) = log( toplam doküman sayisi / terimi içeren doküman sayisi )
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ IDF (Inverse Document Frequency) — Ters Doküman Sıklığı             │
+  │   Bir kelimenin tüm dokümanlar genelinde ne kadar nadir olduğunu    │
+  │   ölçer. Nadir kelimeler daha ayırt edicidir, IDF'i yüksektir.      │
+  │                                                                     │
+  │   IDF(t) = log( toplam doküman / t'yi içeren doküman )              │
+  │                                                                     │
+  │   Örnek: "kedi" 4 dokümanın 3'ünde geçiyorsa                        │
+  │          IDF("kedi") = log(4/3) ≈ 0.29 (düşük, çünkü sık geçiyor)  │
+  │                                                                     │
+  │   Örnek: "araba" 4 dokümanın 1'inde geçiyorsa                       │
+  │          IDF("araba") = log(4/1) ≈ 1.39 (yüksek, çünkü nadir)      │
+  └─────────────────────────────────────────────────────────────────────┘
 
-TF-IDF:
-    TF-IDF(t,d) = TF(t,d) x IDF(t)
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │ TF-IDF(t,d) = TF(t,d) × IDF(t)                                      │
+  │                                                                     │
+  │ Yüksek TF-IDF → kelime bu doküman için karakteristik (önemli)       │
+  │ Düşük TF-IDF  → kelime ya nadir değil ya da bu dokümanda az geçiyor │
+  └─────────────────────────────────────────────────────────────────────┘
 
-Yorum:
-  - TF yüksek  = kelime bu dokümanda önemli
-  - IDF yüksek = kelime genelde nadir (ayirt edici)
-  - TF-IDF yüksek = kelime bu doküman için karakteristik
-""")
+  ÖZET: TF-IDF, bir kelimenin hem doküman içindeki önemini (TF)
+        hem de dokümanlar arası ayırt ediciliğini (IDF) birleştirir.
+  """)
 
 
 # ======================================================================
-# BÖLÜM 2 — MANUEL HESAPLAMA
+# BÖLÜM 2 — MANUEL HESAPLAMA (SIFIRDAN)
 # ======================================================================
-def bolum2_manuel_hesaplama():
-    baslik_yaz("BÖLÜM 2: ADIM ADIM MANUEL TF-IDF HESAPLAMA")
 
-    documents = [
+def manuel_tfidf():
+    """
+    4 küçük Türkçe cümle üzerinde TF, IDF ve TF-IDF değerlerini
+    sıfırdan, Python'ın temel fonksiyonlarıyla hesaplar.
+    Amaç: Kütüphane kullanmadan formülün nasıl çalıştığını göstermek.
+    """
+    baslik("2. ADIM ADIM MANUEL TF-IDF HESAPLAMA")
+
+    # --- 2.1 Dokümanlar
+    dokumanlar = [
         "kedi çok tatli bir hayvan",      # D1
         "kedi ve köpek en iyi arkadas",   # D2
         "köpek sadik bir hayvandir",      # D3
         "araba hizli gider",              # D4
     ]
-    N = len(documents)
-    all_words = sorted(set(w for d in documents for w in d.split()))
+    N = len(dokumanlar)
+    tum_kelimeler = sorted(set(w for d in dokumanlar for w in d.split()))
 
-    print(f"Dokümanlar ({N} adet):")
-    for i, d in enumerate(documents):
-        print(f"  D{i+1}: \"{d}\"")
-    print(f"\nTüm benzersiz kelimeler: {all_words}\n")
+    print(f"\n  Elimizde {N} doküman var:")
+    for i, d in enumerate(dokumanlar):
+        print(f"    D{i+1}: \"{d}\"")
+    print(f"\n  Benzersiz kelime sayısı: {len(tum_kelimeler)}")
+    print(f"  Kelimeler: {tum_kelimeler}")
 
-    # Adim adim hesaplama tablosu
-    print("-" * 130)
-    print(f"{'Kelime':12s} | {'D1 TF':8s} {'D1 IDF':8s} {'D1 TF-IDF':10s} | "
+    # --- 2.2 TF-IDF tablosu
+    print("\n\n  Her kelime için TF, IDF ve TF-IDF değerlerini hesaplayalım:\n")
+    print(f"  {'Kelime':12s} | {'D1 TF':8s} {'D1 IDF':8s} {'D1 TF-IDF':10s} | "
           f"{'D2 TF':8s} {'D2 IDF':8s} {'D2 TF-IDF':10s} | "
           f"{'D3 TF':8s} {'D3 IDF':8s} {'D3 TF-IDF':10s} | "
           f"{'D4 TF':8s} {'D4 IDF':8s} {'D4 TF-IDF':10s} | "
-          f"{'Iceren Doc':10s} {'IDF':8s}")
-    print("-" * 130)
+          f"{'Kaç Döküman':12s} {'IDF':8s}")
+    print("  " + "-" * 128)
 
-    for word in all_words:
-        doc_containing = sum(1 for d in documents if word in d.split())
-        idf_val = math.log((N + 1) / (doc_containing + 1)) + 1
+    for kelime in tum_kelimeler:
+        kac_dokumanda = sum(1 for d in dokumanlar if kelime in d.split())
+        # Smooth IDF: pay ve paydaya +1 ekleyerek sıfıra bölmeyi engelleriz
+        idf_degeri = math.log((N + 1) / (kac_dokumanda + 1)) + 1
 
-        row = f"{word:12s} |"
-        for d in documents:
-            words_in_doc = d.split()
-            tf = words_in_doc.count(word) / len(words_in_doc)
-            tfidf = tf * idf_val
-            row += f" {tf:<8.3f} {idf_val:<8.3f} {tfidf:<10.4f} |"
+        satir = f"  {kelime:12s} |"
+        for d in dokumanlar:
+            d_kelimeleri = d.split()
+            tf = d_kelimeleri.count(kelime) / len(d_kelimeleri)
+            tfidf = tf * idf_degeri
+            satir += f" {tf:<8.3f} {idf_degeri:<8.3f} {tfidf:<10.4f} |"
 
-        row += f" d={doc_containing:<3d}     {idf_val:<8.3f}"
-        print(row)
+        satir += f" {kac_dokumanda}/4           {idf_degeri:<8.3f}"
+        print(satir)
 
-    print("-" * 130)
+    # --- 2.3 "kedi" kelimesi detaylı hesap
+    print("\n\n  --- 'kedi' KELİMESİNİN DETAYLI HESABI ---")
+    kelime = "kedi"
+    kd = sum(1 for d in dokumanlar if kelime in d.split())
+    idf_k = math.log((N + 1) / (kd + 1)) + 1
+    print(f"  'kedi' {kd}/{N} dokümanda geçiyor.")
+    print(f"  IDF('kedi') = log(({N}+1)/({kd}+1)) + 1 = {idf_k:.3f}")
+    print(f"  D1'de TF-IDF('kedi') = TF(1/5) × IDF({idf_k:.3f}) = {1/5 * idf_k:.4f}")
+    print(f"  D2'de TF-IDF('kedi') = TF(1/6) × IDF({idf_k:.3f}) = {1/6 * idf_k:.4f}")
 
-    # "kedi" özel hesabi
-    print("\n--- 'kedi' KELIMESI IÇIN ADIM ADIM HESAP ---")
-    word = "kedi"
-    dc = sum(1 for d in documents if word in d.split())
-    idf = math.log((N + 1) / (dc + 1)) + 1
-    print(f"  IDF('kedi') = log(({N}+1)/({dc}+1)) + 1 = {idf:.3f}")
-    print(f"  D1'de TF-IDF('kedi') = (1/5) x {idf:.3f} = {(1/5*idf):.4f}")
-    print(f"  D2'de TF-IDF('kedi') = (1/6) x {idf:.3f} = {(1/6*idf):.4f}")
+    # --- 2.4 Nadir vs sık kelime
+    print("\n\n  --- NADİR KELİME vs SIK KELİME ---")
+    print("  Bir kelime ne kadar az dokümanda geçerse IDF'i o kadar yüksek olur.")
+    print("  Yüksek IDF = daha ayırt edici.\n")
+    for kelime in ["araba", "ve", "kedi"]:
+        kd = sum(1 for d in dokumanlar if kelime in d.split())
+        idf_v = math.log((N + 1) / (kd + 1)) + 1
+        if idf_v > 1.7:
+            tur = "NADİR (ayırt edici)"
+        elif idf_v > 1.3:
+            tur = "ORTA"
+        else:
+            tur = "SIK (az ayırt edici)"
+        print(f"    '{kelime}': {kd}/4 dokümanda → IDF = {idf_v:.3f} → {tur}")
 
-    # Nadir vs sik karsilastirmasi
-    print("\n--- NADIR vs SIK KELIME KARSILASTIRMASI ---")
-    for word in ["araba", "ve", "kedi"]:
-        dc = sum(1 for d in documents if word in d.split())
-        idf_val = math.log((N + 1) / (dc + 1)) + 1
-        etiket = "NADIR (ayirt edici)" if idf_val > 1.7 else "SIK (az ayirt edici)"
-        print(f"  '{word}': {dc}/{N} dokümanda -> IDF = {idf_val:.3f} -> {etiket}")
-
-    # Küçük dokümanlar ile TF-IDF
-    print("\n--- KÜÇÜK DOKÜMANLAR ILE TF-IDF (sifirdan) ---")
-    kucuk_dokumanlar = [
+    # --- 2.5 Daha küçük bir örnekle sıfırdan hesaplama
+    print("\n\n  --- KÜÇÜK BİR ÖRNEK ÜZERİNDE SIFIRDAN TF-IDF ---")
+    kucuk = [
         "kedi evde uyuyor",
         "köpek parkta kosuyor",
         "kedi ve köpek birlikte oynuyor",
         "evde kedi mamasi var",
     ]
-    tokenize_kucuk = [d.lower().split() for d in kucuk_dokumanlar]
 
-    def tf(term, tokenize_doc):
-        count = tokenize_doc.count(term)
-        return count / len(tokenize_doc) if len(tokenize_doc) > 0 else 0
+    def tf(kelime, tokenize_doc):
+        return tokenize_doc.count(kelime) / len(tokenize_doc) if tokenize_doc else 0
 
-    def idf(term, tokenize_dokumanlar):
-        doc_count = sum(1 for doc in tokenize_dokumanlar if term in doc)
+    def idf(kelime, tokenize_dokumanlar):
+        doc_count = sum(1 for doc in tokenize_dokumanlar if kelime in doc)
         return math.log(len(tokenize_dokumanlar) / (1 + doc_count)) + 1
 
+    tokenize_kucuk = [d.lower().split() for d in kucuk]
+
     for i, doc in enumerate(tokenize_kucuk):
-        print(f"  --- D{i+1}: '{kucuk_dokumanlar[i]}' ---")
-        for term in sorted(set(doc)):
-            tf_val = tf(term, doc)
-            idf_val = idf(term, tokenize_kucuk)
-            tfidf_val = tf_val * idf_val
-            print(f"    '{term}' -> TF={tf_val:.4f}  IDF={idf_val:.4f}  TF-IDF={tfidf_val:.4f}")
+        print(f"\n    D{i+1}: \"{kucuk[i]}\"")
+        for kelime in sorted(set(doc)):
+            tf_val = tf(kelime, doc)
+            idf_val = idf(kelime, tokenize_kucuk)
+            print(f"      '{kelime}' → TF={tf_val:.4f}  IDF={idf_val:.4f}  TF-IDF={tf_val * idf_val:.4f}")
 
 
 # ======================================================================
-# BÖLÜM 3 — SCIKIT-LEARN ILE TF-IDF
+# BÖLÜM 3 — SCIKIT-LEARN İLE TF-IDF
 # ======================================================================
-def bolum3_scikit_learn():
-    baslik_yaz("BÖLÜM 3: SCIKIT-LEARN ILE TF-IDF + GÖRSELLESTIRME")
+
+def sklearn_tfidf():
+    """
+    Scikit-learn'ün TfidfVectorizer'ını kullanarak TF-IDF matrisi oluşturur
+    ve ısı haritası ile görselleştirir.
+    """
+    baslik("3. SCIKIT-LEARN İLE TF-IDF")
 
     kucuk_dokumanlar = [
         "kedi evde uyuyor",
@@ -191,339 +257,436 @@ def bolum3_scikit_learn():
         "evde kedi mamasi var",
     ]
 
+    # TfidfVectorizer: metinleri otomatik tokenize eder ve TF-IDF matrisi oluşturur
     vectorizer = TfidfVectorizer()
     tfidf_matrisi = vectorizer.fit_transform(kucuk_dokumanlar)
 
+    # DataFrame olarak görselleştir
     df = pd.DataFrame(
         tfidf_matrisi.toarray(),
         columns=vectorizer.get_feature_names_out(),
         index=[f"Doküman {i+1}" for i in range(len(kucuk_dokumanlar))]
     )
 
-    print("\nTF-IDF Matrisi (DataFrame):")
-    print(df.to_string())
-    print()
+    print("\n  TF-IDF Matrisi (her satır bir doküman, her sütun bir kelime):")
+    print(df.round(4).to_string())
+    print("\n  Sıfırlar → o kelime o dokümanda hiç geçmiyor.")
+    print("  Yüksek değerler → o kelime o doküman için önemli.")
 
-    print("Her dokümanda en yüksek TF-IDF skoruna sahip kelime:")
+    # Her dokümanda en yüksek TF-IDF skoruna sahip kelime
+    print("\n  Her dokümanda en yüksek skora sahip kelime:")
     for i, doc in enumerate(kucuk_dokumanlar):
         satir = df.iloc[i]
-        en_iyi = satir.idxmax()
-        skor = satir.max()
-        print(f"  D{i+1}: '{doc}' -> '{en_iyi}' (skor={skor:.4f})")
+        print(f"    D{i+1}: '{doc}' → '{satir.idxmax()}' (skor: {satir.max():.4f})")
 
-    # Heatmap
-    os.makedirs(FIG_DIR, exist_ok=True)
+    # Isı haritası
     plt.figure(figsize=(10, 6))
     sns.heatmap(df, annot=True, cmap="YlOrRd", fmt=".3f", linewidths=0.5)
-    plt.title("TF-IDF Matrisi (Isi Haritasi)")
+    plt.title("TF-IDF Matrisi (Isı Haritası)")
     plt.xlabel("Kelimeler")
     plt.ylabel("Dokümanlar")
     plt.tight_layout()
-    out = os.path.join(FIG_DIR, "01_tfidf_heatmap.png")
-    plt.savefig(out, bbox_inches="tight")
-    plt.close()
-    print(f"[görsel] Isi haritasi kaydedildi -> {out}")
+    figuru_kaydet("01_tfidf_heatmap.png")
 
 
 # ======================================================================
-# BÖLÜM 4 — 20 NEWSGROUPS
+# BÖLÜM 4 — TTC-4900 TÜRKÇE VERİ SETİ
 # ======================================================================
-def bolum4_newsgroups():
-    baslik_yaz("BÖLÜM 4: 20 NEWSGROUPS ILE GERÇEK VERI UYGULAMASI")
 
-    kategoriler = ["rec.sport.baseball", "sci.space", "comp.graphics", "talk.politics.guns"]
-    print(f"Kategoriler: {kategoriler}")
+def turkce_veri_seti():
+    """
+    TTC-4900 Türkçe haber veri setini yükler, sınıf dağılımını gösterir
+    ve Cosine Similarity ile aynı/farklı kategorideki belgelerin
+    benzerliğini karşılaştırır.
+    """
+    baslik("4. TTC-4900 TÜRKÇE HABER VERİ SETİ")
 
-    newsgroups = fetch_20newsgroups(subset='train', categories=kategoriler,
-                                    shuffle=True, random_state=RANDOM_STATE)
-    print(f"Yüklenen belge sayisi: {len(newsgroups.data)}")
+    print("\n  Veri seti yükleniyor...")
+    try:
+        from datasets import load_dataset
+        ds = load_dataset("savasy/ttc4900")
+        metinler = ds["train"]["text"]
+        etiketler = ds["train"]["category"]
+    except Exception:
+        # HuggingFace datasets yoksa uyarı ver
+        print("\n  [!] 'datasets' kütüphanesi yüklü değil veya internet yok.")
+        print("  Yüklemek için: pip install datasets")
+        print("  Alternatif: Veriyi manuel olarak data/ klasörüne koyun.")
+        print("  Bu bölüm atlanıyor...\n")
+        return None, None
 
-    vectorizer_news = TfidfVectorizer(max_features=1000, stop_words='english')
-    X = vectorizer_news.fit_transform(newsgroups.data)
+    print(f"  Toplam {len(metinler)} Türkçe haber yüklendi.")
+    print(f"  Kategoriler ({len(TTC4900_KATEGORILER)}):")
+    for i, kat in enumerate(TTC4900_KATEGORILER):
+        sayi = sum(1 for e in etiketler if e == i)
+        print(f"    {kat:12s}: {sayi} haber")
 
-    print(f"TF-IDF matris boyutu: {X.shape}")
-    print(f"Seyreklik: %{(1 - X.nnz / (X.shape[0] * X.shape[1])) * 100:.2f}")
+    # Sınıf dağılımı grafiği
+    sayilar = [sum(1 for e in etiketler if e == i) for i in range(len(TTC4900_KATEGORILER))]
+    plt.figure(figsize=(10, 5))
+    bars = plt.bar(TTC4900_KATEGORILER, sayilar, color=plt.cm.Set3(range(len(TTC4900_KATEGORILER))))
+    for bar, sayi in zip(bars, sayilar):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 10,
+                 str(sayi), ha='center', fontsize=10)
+    plt.title("TTC-4900: Kategorilere Göre Haber Sayısı")
+    plt.xlabel("Kategori")
+    plt.ylabel("Haber Sayısı")
+    plt.xticks(rotation=30, ha='right')
+    plt.ylim(0, max(sayilar) * 1.15)
+    plt.tight_layout()
+    figuru_kaydet("02_veri_dagilimi.png")
 
-    # Cosine similarity
-    ilk_kategori = kategoriler[0]
-    kategori_belgeler = [i for i, t in enumerate(newsgroups.target)
-                         if t == kategoriler.index(ilk_kategori)]
-    secili = kategori_belgeler[:3]
+    # Token uzunluğu histogramı
+    token_uzunluklari = [len(m.split()) for m in metinler]
+    plt.figure(figsize=(10, 4))
+    plt.hist(token_uzunluklari, bins=40, color='steelblue', edgecolor='white', alpha=0.8)
+    plt.axvline(np.mean(token_uzunluklari), color='red', linestyle='--',
+                label=f'Ortalama: {np.mean(token_uzunluklari):.1f} kelime')
+    plt.title("Haber Uzunluklarının Dağılımı (Token Sayısı)")
+    plt.xlabel("Kelime Sayısı")
+    plt.ylabel("Haber Sayısı")
+    plt.legend()
+    plt.tight_layout()
+    figuru_kaydet("03_token_uzunluklari.png")
 
-    benzerlikler = cosine_similarity(X[secili[0]:secili[0]+1],
-                                      X[secili[1]:secili[2]+1])[0]
-    print(f"\nCosine Similarity (kategori: {ilk_kategori}):")
-    print(f"  Belge 1 vs Belge 2: {benzerlikler[0]:.4f}")
-    print(f"  Belge 1 vs Belge 3: {benzerlikler[1]:.4f}")
+    # Cosine similarity: aynı kategoriden 2 belge vs farklı kategoriden
+    print("\n  Cosine Similarity (benzerlik) analizi...")
+    v = TfidfVectorizer(max_features=2000)
+    X = v.fit_transform(metinler)
 
-    # Farkli kategori
-    farkli_kategori = kategoriler[1]
-    farkli_indeks = [i for i, t in enumerate(newsgroups.target)
-                     if t == kategoriler.index(farkli_kategori)][0]
-    benzerlik_farkli = cosine_similarity(X[secili[0]:secili[0]+1],
-                                          X[farkli_indeks:farkli_indeks+1])[0][0]
-    print(f"\nAyni kategori (baseball) benzerligi: {benzerlikler[0]:.4f}")
-    print(f"Farkli kategori (space) benzerligi:   {benzerlik_farkli:.4f}")
-    print("-> Ayni kategorideki belgeler arasi benzerlik daha yüksektir.")
+    siyaset_idx = [i for i, e in enumerate(etiketler) if e == 0]  # siyaset
+    spor_idx = [i for i, e in enumerate(etiketler) if e == 5]     # spor
 
-    return newsgroups, vectorizer_news
+    ayni_benzerlik = cosine_similarity(X[siyaset_idx[0]:siyaset_idx[0]+1],
+                                        X[siyaset_idx[1]:siyaset_idx[1]+1])[0][0]
+    farkli_benzerlik = cosine_similarity(X[siyaset_idx[0]:siyaset_idx[0]+1],
+                                          X[spor_idx[0]:spor_idx[0]+1])[0][0]
+
+    print(f"    Aynı kategoriden 2 siyaset haberi benzerliği: {ayni_benzerlik:.4f}")
+    print(f"    Farklı kategoriden (siyaset vs spor) benzerlik: {farkli_benzerlik:.4f}")
+    print("    → Aynı kategorideki haberler daha benzer, TF-IDF bunu yakalıyor.")
+
+    return metinler, etiketler
 
 
 # ======================================================================
 # BÖLÜM 5 — SINIFLANDIRMA
 # ======================================================================
-def bolum5_siniflandirma():
-    baslik_yaz("BÖLÜM 5: TF-IDF + LOGISTIC REGRESSION ILE SINIFLANDIRMA")
 
-    kategoriler = ["rec.sport.baseball", "sci.space", "comp.graphics", "talk.politics.guns"]
-    newsgroups = fetch_20newsgroups(subset='all', categories=kategoriler,
-                                    shuffle=True, random_state=RANDOM_STATE)
-    print(f"Toplam belge: {len(newsgroups.data)}")
+def siniflandirma(metinler, etiketler):
+    """
+    TTC-4900 veri seti üzerinde TF-IDF + Logistic Regression ile
+    Türkçe haber sınıflandırması yapar.
+    """
+    baslik("5. TF-IDF + LOGISTIC REGRESSION İLE TÜRKÇE HABER SINIFLANDIRMASI")
 
-    X = newsgroups.data
-    y = newsgroups.target
+    if metinler is None:
+        print("\n  Veri seti yüklenemedi, bu bölüm atlanıyor.")
+        return None, None, None
 
-    X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)
-    print(f"Egitim: {len(X_tr)} | Test: {len(X_te)}")
+    X_egitim, X_test, y_egitim, y_test = train_test_split(
+        metinler, etiketler, test_size=0.2, random_state=RANDOM_STATE, stratify=etiketler
+    )
+    print(f"\n  Eğitim: {len(X_egitim)} haber | Test: {len(X_test)} haber")
 
     MAX_FEATURES = 10000
+
+    # Pipeline: önce TF-IDF vektörleştir, sonra Logistic Regression ile sınıflandır
     model = make_pipeline(
-        TfidfVectorizer(stop_words='english', ngram_range=(1, 2),
-                         min_df=5, max_features=MAX_FEATURES, sublinear_tf=True),
-        LogisticRegression(max_iter=1000, class_weight='balanced',
-                           random_state=RANDOM_STATE),
+        TfidfVectorizer(
+            ngram_range=(1, 2),       # unigram + bigram
+            min_df=5,                  # en az 5 dokümanda geçsin
+            max_features=MAX_FEATURES,
+            sublinear_tf=True          # TF'i log(1+TF) ile yumuşat
+        ),
+        LogisticRegression(
+            max_iter=1000,
+            class_weight='balanced',   # sınıf dengesizliğine karşı
+            random_state=RANDOM_STATE
+        ),
     )
-    model.fit(X_tr, y_tr)
-    pred = model.predict(X_te)
 
-    acc = accuracy_score(y_te, pred)
-    f1m = f1_score(y_te, pred, average='macro')
-    n_feat = len(model.named_steps['tfidfvectorizer'].get_feature_names_out())
-    clf = model.named_steps['logisticregression']
-    vec = model.named_steps['tfidfvectorizer']
+    print("  Model eğitiliyor...")
+    model.fit(X_egitim, y_egitim)
 
-    print(f"\nÖznitelik sayisi: {n_feat}")
-    print(f"Accuracy: {acc:.4f}")
-    print(f"F1 (macro): {f1m:.4f}")
-    print("\nSiniflandirma Raporu:")
-    print(classification_report(y_te, pred, target_names=kategoriler))
+    tahmin = model.predict(X_test)
+    dogruluk = accuracy_score(y_test, tahmin)
+    f1 = f1_score(y_test, tahmin, average='macro')
+
+    print(f"\n  Doğruluk (Accuracy):  {dogruluk:.4f}")
+    print(f"  F1 Skoru (macro):     {f1:.4f}")
+    print("\n  Sınıflandırma Raporu:")
+    print(classification_report(y_test, tahmin, target_names=TTC4900_KATEGORILER))
 
     # Confusion matrix
-    os.makedirs(FIG_DIR, exist_ok=True)
-    cm = confusion_matrix(y_te, pred)
-    fig, ax = plt.subplots(figsize=(7, 5.5))
+    cm = confusion_matrix(y_test, tahmin)
+    fig, ax = plt.subplots(figsize=(8, 6.5))
     im = ax.imshow(cm, cmap="Blues")
-    ax.set_xticks(range(len(kategoriler)), labels=[k.split('.')[-1] for k in kategoriler],
-                  rotation=30, ha='right')
-    ax.set_yticks(range(len(kategoriler)), labels=[k.split('.')[-1] for k in kategoriler])
-    ax.set_xlabel("Tahmin")
+    ax.set_xticks(range(len(TTC4900_KATEGORILER)))
+    ax.set_xticklabels(TTC4900_KATEGORILER, rotation=30, ha='right')
+    ax.set_yticks(range(len(TTC4900_KATEGORILER)))
+    ax.set_yticklabels(TTC4900_KATEGORILER)
+    ax.set_xlabel("Tahmin Edilen")
     ax.set_ylabel("Gerçek")
-    ax.set_title(f"Confusion Matrix (TF-IDF + LogReg) — Acc=%{acc*100:.1f}")
-    for i in range(len(kategoriler)):
-        for j in range(len(kategoriler)):
+    ax.set_title(f"Confusion Matrix — Doğruluk: %{dogruluk*100:.1f}")
+    for i in range(len(TTC4900_KATEGORILER)):
+        for j in range(len(TTC4900_KATEGORILER)):
             ax.text(j, i, str(cm[i, j]), ha="center", va="center",
-                    color="white" if cm[i, j] > cm.max() / 2 else "black")
+                    color="white" if cm[i, j] > cm.max() / 2 else "black",
+                    fontsize=9)
     fig.colorbar(im, fraction=0.046, pad=0.04)
     fig.tight_layout()
-    out = os.path.join(FIG_DIR, "02_confusion_matrix.png")
-    fig.savefig(out, bbox_inches="tight")
-    plt.close(fig)
-    print(f"[görsel] Confusion matrix -> {out}")
+    figuru_kaydet("04_confusion_matrix.png")
 
-    # En etkili kelimeler (top words)
-    isimler = np.array(vec.get_feature_names_out())
-    katsayilar = clf.coef_[0]
-    n_top = 12
-    top_pos = np.argsort(katsayilar)[-n_top:]
-    top_neg = np.argsort(katsayilar)[:n_top]
+    # En etkili kelimeler
+    vec = model.named_steps['tfidfvectorizer']
+    clf = model.named_steps['logisticregression']
+    kelime_isimleri = np.array(vec.get_feature_names_out())
 
-    fig, axes = plt.subplots(1, 2, figsize=(13, 5))
-    axes[0].barh(isimler[top_pos], katsayilar[top_pos], color="#5cb85c")
-    axes[0].set_title("En olumlu etki (baseball lehine)")
-    axes[1].barh(isimler[top_neg], katsayilar[top_neg], color="#d9534f")
-    axes[1].set_title("En olumsuz etki (baseball aleyhine)")
-    for ax in axes:
-        ax.axvline(0, color="gray", lw=0.8)
+    # Her kategori için en etkili kelimeleri göster
+    print("\n  Her kategoride en karakteristik kelimeler:\n")
+    fig, axes = plt.subplots(3, 3, figsize=(16, 14))
+    axes = axes.flatten()
+
+    for kat_idx in range(len(TTC4900_KATEGORILER)):
+        katsayilar = clf.coef_[kat_idx]
+        en_iyi = np.argsort(katsayilar)[-10:]
+        kelimeler = kelime_isimleri[en_iyi]
+        skorlar = katsayilar[en_iyi]
+
+        ax = axes[kat_idx]
+        ax.barh(range(10), skorlar, color='steelblue')
+        ax.set_yticks(range(10))
+        ax.set_yticklabels(kelimeler)
+        ax.set_title(f"{TTC4900_KATEGORILER[kat_idx]}", fontsize=11)
+        ax.axvline(0, color='gray', lw=0.8)
+
+    # Fazla ekseni gizle
+    for ax in axes[len(TTC4900_KATEGORILER):]:
+        ax.set_visible(False)
+
+    fig.suptitle("Her Kategori İçin En Karakteristik 10 Kelime", fontsize=14, y=1.01)
     fig.tight_layout()
-    out = os.path.join(FIG_DIR, "03_top_words.png")
-    fig.savefig(out, bbox_inches="tight")
-    plt.close(fig)
-    print(f"[görsel] En etkili kelimeler -> {out}")
+    figuru_kaydet("05_kelime_onemi.png")
 
-    return acc, f1m, n_feat
+    print("  (Grafik figures/ klasörüne kaydedildi)")
+    for kat_idx in range(len(TTC4900_KATEGORILER)):
+        katsayilar = clf.coef_[kat_idx]
+        en_iyi = np.argsort(katsayilar)[-5:]
+        kelimeler = ", ".join(kelime_isimleri[en_iyi][::-1])
+        print(f"    {TTC4900_KATEGORILER[kat_idx]:12s}: {kelimeler}")
+
+    return dogruluk, f1, MAX_FEATURES
 
 
 # ======================================================================
-# BÖLÜM 6 — SVD ANALIZI
+# BÖLÜM 6 — SVD İLE BOYUT İNDİRGEME
 # ======================================================================
-def bolum6_svd_analizi():
-    baslik_yaz("BÖLÜM 6: SVD ILE BOYUT INDIRGEME VE PERFORMANS TAKASI")
 
-    kategoriler = ["rec.sport.baseball", "sci.space", "comp.graphics", "talk.politics.guns"]
-    newsgroups = fetch_20newsgroups(subset='all', categories=kategoriler,
-                                    shuffle=True, random_state=RANDOM_STATE)
-    X = newsgroups.data
-    y = newsgroups.target
-    X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)
+def svd_analizi(metinler, etiketler):
+    """
+    Truncated SVD kullanarak TF-IDF matrisinin boyutunu düşürür ve
+    performans takasını (accuracy vs boyut) grafikle gösterir.
+    """
+    baslik("6. SVD İLE BOYUT İNDİRGEME VE PERFORMANS TAKASI")
+
+    if metinler is None:
+        print("\n  Veri seti yüklenemedi, bu bölüm atlanıyor.")
+        return None, None, None
+
+    X_egitim, X_test, y_egitim, y_test = train_test_split(
+        metinler, etiketler, test_size=0.2, random_state=RANDOM_STATE, stratify=etiketler
+    )
 
     MAX_FEATURES = 10000
-    SVD_COMPONENTS = [25, 50, 100, 200, 500]
+    SVD_BILESENLER = [25, 50, 100, 200, 500]
 
-    accs, f1s, evrs = [], [], []
-    for k in SVD_COMPONENTS:
+    print(f"\n  Orijinal TF-IDF boyutu: {MAX_FEATURES}")
+    print(f"  SVD ile {SVD_BILESENLER} boyuta indiriyoruz...\n")
+
+    dogruluklar, f1ler, varyanslar = [], [], []
+
+    for k in SVD_BILESENLER:
         pipe = make_pipeline(
-            TfidfVectorizer(stop_words='english', ngram_range=(1, 2),
-                             min_df=5, max_features=MAX_FEATURES, sublinear_tf=True),
+            TfidfVectorizer(
+                ngram_range=(1, 2), min_df=5,
+                max_features=MAX_FEATURES, sublinear_tf=True
+            ),
             TruncatedSVD(n_components=k, random_state=RANDOM_STATE),
-            LogisticRegression(max_iter=1000, class_weight='balanced',
-                               random_state=RANDOM_STATE),
+            LogisticRegression(
+                max_iter=1000, class_weight='balanced', random_state=RANDOM_STATE
+            ),
         )
-        pipe.fit(X_tr, y_tr)
-        pred = pipe.predict(X_te)
-        accs.append(accuracy_score(y_te, pred))
-        f1s.append(f1_score(y_te, pred, average='macro'))
-        evrs.append(pipe.named_steps['truncatedsvd'].explained_variance_ratio_.sum())
-        print(f"  SVD k={k:<4} -> acc={accs[-1]:.4f}  F1={f1s[-1]:.4f}  varyans=%{100*evrs[-1]:.1f}")
+        pipe.fit(X_egitim, y_egitim)
+        tahmin = pipe.predict(X_test)
+        dogruluklar.append(accuracy_score(y_test, tahmin))
+        f1ler.append(f1_score(y_test, tahmin, average='macro'))
+        evr = pipe.named_steps['truncatedsvd'].explained_variance_ratio_.sum()
+        varyanslar.append(evr)
+        sikisma = 100 * (1 - k / MAX_FEATURES)
+        print(f"    SVD({k:3d}) → doğruluk={dogruluklar[-1]:.4f}  "
+              f"F1={f1ler[-1]:.4f}  varyans=%{100*evr:.1f}  "
+              f"sıkışma=%{sikisma:.1f}")
 
-    os.makedirs(FIG_DIR, exist_ok=True)
-    fig, ax1 = plt.subplots(figsize=(7.5, 4.6))
-    ax1.plot(SVD_COMPONENTS, accs, "o-", color="#0275d8", label="Accuracy")
-    ax1.plot(SVD_COMPONENTS, f1s, "s-", color="#5cb85c", label="F1 (macro)")
-    ax1.set_xlabel("SVD bilesen sayisi (boyut)")
+    # Grafik: çift eksenli (accuracy vs varyans)
+    fig, ax1 = plt.subplots(figsize=(8, 5))
+    ax1.plot(SVD_BILESENLER, dogruluklar, "o-", color="#0275d8", lw=2, label="Doğruluk")
+    ax1.plot(SVD_BILESENLER, f1ler, "s-", color="#5cb85c", lw=2, label="F1 (macro)")
+    ax1.set_xlabel("SVD Bileşen Sayısı (boyut)")
     ax1.set_ylabel("Skor")
     ax1.legend(loc="lower right")
+    ax1.set_ylim(0, 1.05)
+
     ax2 = ax1.twinx()
-    ax2.plot(SVD_COMPONENTS, [100*e for e in evrs], "^--", color="#f0ad4e",
-             label="Açiklanan varyans %")
-    ax2.set_ylabel("Açiklanan varyans (%)", color="#f0ad4e")
-    ax1.set_title("SVD: Boyut Indirgeme — Performans Takasi")
+    ax2.plot(SVD_BILESENLER, [100*e for e in varyanslar], "^--",
+             color="#f0ad4e", lw=2, label="Açıklanan Varyans %")
+    ax2.set_ylabel("Açıklanan Varyans (%)", color="#f0ad4e")
+    ax2.set_ylim(0, 105)
+
+    ax1.set_title("SVD: Boyut İndirgeme — Performans Takası\n"
+                  f"(Orijinal boyut: {MAX_FEATURES})")
     fig.tight_layout()
-    out = os.path.join(FIG_DIR, "04_svd_tradeoff.png")
-    fig.savefig(out, bbox_inches="tight")
-    plt.close(fig)
-    print(f"[görsel] SVD takas grafigi -> {out}")
+    figuru_kaydet("06_svd_tradeoff.png")
 
-    return accs, f1s, evrs
+    return dogruluklar, f1ler, varyanslar
 
 
 # ======================================================================
-# BÖLÜM 7 — TF-IDF LIMITLERI
+# BÖLÜM 7 — TF-IDF LİMİTLERİ
 # ======================================================================
-def bolum7_limitler():
-    baslik_yaz("BÖLÜM 7: TF-IDF LIMITLERI")
 
-    # 7.1 Semantik
-    print("\n--- 7.1 Anlamsal Iliski (Semantics) ---")
-    print("TF-IDF her kelimeyi bagimsiz bir ID olarak ele alir.")
-    print('"Kral" ile "Kraliçe" arasinda semantik iliskiyi bilmez.\n')
+def tfidf_limitleri():
+    """
+    TF-IDF'in dört temel sınırlamasını gösterir:
+    1) Anlamsal ilişki yakalayamama
+    2) Kelime sırasını yok sayma (bağlam kaybı)
+    3) Seyreklik problemi
+    4) Boyut laneti
+    """
+    baslik("7. TF-IDF'İN LİMİTLERİ")
 
-    dok_semantik = [
+    # --- 7.1 Anlamsal İlişki ---
+    alt_baslik("7.1 Anlamsal İlişki (Semantics)")
+
+    print("""
+  TF-IDF her kelimeyi bağımsız bir ID (sütun) olarak görür.
+  "Kral" ve "Kraliçe" arasındaki anlamsal yakınlığı bilmez.
+  İkisi de sadece farklı birer sütundur.
+  """)
+
+    dokumanlar = [
         "kral sarayda yasar",
         "kralice sarayda yasar",
         "masa odada duruyor",
     ]
     v = TfidfVectorizer()
-    m = v.fit_transform(dok_semantik)
+    m = v.fit_transform(dokumanlar)
     benzerlik = cosine_similarity(m[0:1], m[1:3])[0]
-    print(f"  'kral ...' vs 'kralice ...': {benzerlik[0]:.4f}")
-    print(f"  'kral ...' vs 'masa ...'   : {benzerlik[1]:.4f}")
-    print("  Iki deger neredeyse ayni! Oysa kral ve kralice anlamsal olarak çok daha yakin.")
+    print(f"  Cosine benzerlik:")
+    print(f"    'kral ...' vs 'kralice ...': {benzerlik[0]:.4f}")
+    print(f"    'kral ...' vs 'masa ...'   : {benzerlik[1]:.4f}")
+    print("  → İki değer de sıfır! Oysa kral ve kraliçe anlamsal olarak yakın.")
+    print("  → Çözüm: Word2Vec, GloVe, FastText gibi embedding yöntemleri.")
 
-    # 7.2 Baglam
-    print("\n--- 7.2 Baglam (Context) ---")
-    print('TF-IDF bag-of-words modelidir. "Köpek adami isirdi" ile "Adam köpegi isirdi"')
-    print('TF-IDF için neredeyse aynidir, oysa anlamlari tamamen farklidir!\n')
+    # --- 7.2 Bağlam Kaybı ---
+    alt_baslik("7.2 Bağlam Kaybı (Context)")
+
+    print("""
+  TF-IDF bir "bag-of-words" modelidir. Kelimelerin sırasını tamamen yok sayar.
+  "Köpek adamı ısırdı" ile "Adam köpeği ısırdı" TF-IDF için neredeyse aynıdır.
+  Oysa anlamları taban tabana zıttır!
+  """)
 
     dok_baglam = [
         "köpek adami isirdi",
         "adam köpegi isirdi",
         "kedi fareyi kovaladi",
     ]
-    v3 = TfidfVectorizer()
-    m3 = v3.fit_transform(dok_baglam)
-    b2 = cosine_similarity(m3[0:1], m3[1:3])[0]
-    print(f"  unigram benzerlik: {b2[0]:.4f} (neredeyse özdes!)")
 
-    # N-gram kisni çözüm
-    v4 = TfidfVectorizer(ngram_range=(1, 2))
-    m4 = v4.fit_transform(dok_baglam)
-    b3 = cosine_similarity(m4[0:1], m4[1:3])[0]
-    print(f"  bigram benzerlik:   {b3[0]:.4f} (daha farkli, ama yetersiz)")
-    print("  N-gram'lar kisni çözüm sunar. Gerçek çözüm: RNN, LSTM, Transformer.")
+    v1 = TfidfVectorizer()
+    m1 = v1.fit_transform(dok_baglam)
+    b1 = cosine_similarity(m1[0:1], m1[1:3])[0]
+    print(f"  Unigram benzerlik: {b1[0]:.4f}")
 
-    # 7.3 Seyreklik
-    print("\n--- 7.3 Boyutlanabilirlik ve Seyreklik ---")
+    v2 = TfidfVectorizer(ngram_range=(1, 2))
+    m2 = v2.fit_transform(dok_baglam)
+    b2 = cosine_similarity(m2[0:1], m2[1:3])[0]
+    print(f"  Bigram benzerlik:  {b2[0]:.4f}")
+    print("  → Bigram ile 'köpek adamı' ve 'adam köpeği' farklı öznitelik olur.")
+    print("  → Kısmi çözüm: n-gram. Gerçek çözüm: RNN, LSTM, Transformer.")
+
+    # --- 7.3 Seyreklik ---
+    alt_baslik("7.3 Seyreklik (Sparsity)")
+
+    print("""
+  Kelime dağarcığı büyüdükçe TF-IDF matrisi aşırı seyrek hale gelir.
+  Örneğin 10.000 doküman × 50.000 kelime = 500 milyon hücre.
+  Ama her dokümanda ortalama 50-100 farklı kelime vardır → %99.9'u sıfır!
+  """)
+
     np.random.seed(RANDOM_STATE)
-    temel_kelimeler = [
+    kelime_havuzu = [
         "teknoloji", "yapay", "zeka", "veri", "bilim", "yazilim", "makine",
-        "ögrenme", "derin", "sinir", "dil", "isleme", "analiz", "model",
+        "ogrenme", "derin", "sinir", "dil", "isleme", "analiz", "model",
         "algoritma", "optimizasyon", "matris", "siniflandirma", "tahmin",
         "kral", "kralice", "masa", "kitap", "spor", "ekonomi", "saglik",
         "egitim", "hukuk", "sanat", "muzik", "tarih", "politika", "cevre",
-        "doga", "enerji", "dijital", "robot", "uzay", "zaman",
+        "doga", "enerji", "dijital", "robot", "uzay", "zaman", "donanim",
     ]
 
-    NUM_DOCS = 1000
-    buyuk_dokumanlar = []
-    for _ in range(NUM_DOCS):
-        doc_len = np.random.randint(20, 100)
-        doc = " ".join(np.random.choice(temel_kelimeler, doc_len, replace=True))
-        buyuk_dokumanlar.append(doc)
+    N = 5000
+    dokumanlar = []
+    for _ in range(N):
+        uzunluk = np.random.randint(20, 100)
+        dokumanlar.append(" ".join(np.random.choice(kelime_havuzu, uzunluk, replace=True)))
 
-    v5 = TfidfVectorizer()
-    m5 = v5.fit_transform(buyuk_dokumanlar)
-    toplam_hucre = m5.shape[0] * m5.shape[1]
-    seyreklik = 100 * (1 - m5.nnz / toplam_hucre)
-    print(f"  Doküman sayisi: {m5.shape[0]}")
-    print(f"  Kelime dagarcigi: {m5.shape[1]}")
-    print(f"  Seyreklik: %{seyreklik:.2f}")
-    print(f"  (Her dokümanda ortalama {m5.nnz/m5.shape[0]:.1f} sifir olmayan öznitelik)")
+    v = TfidfVectorizer()
+    m = v.fit_transform(dokumanlar)
+    toplam = m.shape[0] * m.shape[1]
+    seyreklik = 100 * (1 - m.nnz / toplam)
 
-    # Seyreklik grafigi
-    max_features_degerleri = [100, 500, 1000, 2000, 5000]
+    print(f"  Doküman sayısı:     {m.shape[0]:,}")
+    print(f"  Kelime dağarcığı:   {m.shape[1]:,}")
+    print(f"  Toplam hücre:       {toplam:,}")
+    print(f"  Sıfır olmayan:      {m.nnz:,}")
+    print(f"  Seyreklik:          %{seyreklik:.2f}")
+    print(f"  → Matrisin %{seyreklik:.1f}'i boş (sıfır)!")
+    print(f"  → Çözüm: SVD, PCA, Embedding katmanları.")
+
+    # Seyreklik grafiği
+    max_feat_list = [100, 500, 1000, 2000, 5000]
     seyreklikler, boyutlar = [], []
-    for mf in max_features_degerleri:
+    for mf in max_feat_list:
         v = TfidfVectorizer(max_features=mf)
-        m = v.fit_transform(buyuk_dokumanlar)
+        m = v.fit_transform(dokumanlar)
         toplam = m.shape[0] * m.shape[1]
-        sey = 100 * (1 - m.nnz / toplam)
-        seyreklikler.append(sey)
+        seyreklikler.append(100 * (1 - m.nnz / toplam))
         boyutlar.append(m.shape[1])
 
-    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    axes[0].plot(boyutlar, seyreklikler, marker='o', linewidth=2)
-    axes[0].set_xlabel("Vocabulary Boyutu")
-    axes[0].set_ylabel("Seyreklik (%)")
-    axes[0].set_title("Vocabulary Boyutu vs Seyreklik")
-    axes[0].grid(True)
-    axes[0].set_ylim(80, 100)
-
-    axes[1].bar([str(b) for b in boyutlar], seyreklikler, color='coral')
-    axes[1].set_xlabel("Vocabulary Boyutu")
-    axes[1].set_ylabel("Seyreklik (%)")
-    axes[1].set_title("Vocabulary Büyüdükçe Seyreklik Artar")
-    axes[1].set_ylim(80, 100)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar([str(b) for b in boyutlar], seyreklikler, color='coral')
+    ax.set_xlabel("Vocabulary Boyutu")
+    ax.set_ylabel("Seyreklik (%)")
+    ax.set_title("Vocabulary Büyüdükçe Seyreklik Artar")
+    ax.set_ylim(80, 100)
     for i, v in enumerate(seyreklikler):
-        axes[1].text(i, v + 1, f"%{v:.1f}", ha="center", fontsize=9)
-
+        ax.text(i, v + 0.5, f"%{v:.1f}", ha='center', fontsize=9)
     fig.tight_layout()
-    out = os.path.join(FIG_DIR, "05_sparsity.png")
-    fig.savefig(out, bbox_inches="tight")
-    plt.close(fig)
-    print(f"[görsel] Seyreklik analizi -> {out}")
+    figuru_kaydet("07_sparsity.png")
 
-    # 7.4 Boyut Laneti
-    print("\n--- 7.4 Boyut Laneti (Curse of Dimensionality) ---")
-    print("Yüksek boyutta tüm noktalar birbirine esit uzaklikta görünür.")
-    print("CV (Std/Ort) 0'a yaklasir -> mesafeler anlamsizlasir.\n")
+    # --- 7.4 Boyut Laneti ---
+    alt_baslik("7.4 Boyut Laneti (Curse of Dimensionality)")
+
+    print("""
+  Yüksek boyutlu uzayda tüm noktalar birbirine eşit uzaklıkta görünür.
+  Mesafeler anlamsızlaşır → benzerlik ölçümleri çalışmaz.
+  """)
 
     boyutlar = [2, 5, 10, 50, 100, 500]
-    noktalar = 50
+    nokta_sayisi = 50
     mesafe_ort, mesafe_std = [], []
     for dim in boyutlar:
-        data = np.random.uniform(0, 1, (noktalar, dim))
+        data = np.random.uniform(0, 1, (nokta_sayisi, dim))
         mesafeler = pdist(data, 'euclidean')
         mesafe_ort.append(np.mean(mesafeler))
         mesafe_std.append(np.std(mesafeler))
@@ -531,110 +694,136 @@ def bolum7_limitler():
     cv = [s / m for m, s in zip(mesafe_ort, mesafe_std)]
 
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-    axes[0].plot(boyutlar, mesafe_ort, marker='o')
+    axes[0].plot(boyutlar, mesafe_ort, marker='o', lw=2)
     axes[0].fill_between(boyutlar,
                          np.array(mesafe_ort) - np.array(mesafe_std),
                          np.array(mesafe_ort) + np.array(mesafe_std),
                          alpha=0.2)
     axes[0].set_xlabel("Boyut")
-    axes[0].set_ylabel("Öklid Mesafesi")
-    axes[0].set_title("Boyut Arttikça Tüm Noktalar Birbirine Uzaklasir")
+    axes[0].set_ylabel("Ortalama Öklid Mesafesi")
+    axes[0].set_title("Boyut Arttıkça Mesafeler Büyür ve Ayrışır")
     axes[0].grid(True)
 
-    axes[1].plot(boyutlar, cv, marker='o', color='red')
+    axes[1].plot(boyutlar, cv, marker='o', color='red', lw=2)
     axes[1].axhline(y=0, color='gray', linestyle='--')
     axes[1].set_xlabel("Boyut")
-    axes[1].set_ylabel("CV (Std / Ort)")
-    axes[1].set_title("Boyut Arttikça Mesafeler Ayirt Edilemez")
+    axes[1].set_ylabel("CV (Std / Ortalama)")
+    axes[1].set_title("Boyut Arttıkça Mesafeler Ayırt Edilemez (CV → 0)")
     axes[1].grid(True)
     fig.tight_layout()
-    out = os.path.join(FIG_DIR, "06_curse_of_dimensionality.png")
-    fig.savefig(out, bbox_inches="tight")
-    plt.close(fig)
-    print(f"[görsel] Boyut laneti -> {out}")
+    figuru_kaydet("08_boyut_laneti.png")
 
 
 # ======================================================================
-# BÖLÜM 8 — ÖZET VE ÖRNEK TAHMIN
+# BÖLÜM 8 — ÖZET VE ÖRNEK TAHMİNLER
 # ======================================================================
-def bolum8_ozet():
-    baslik_yaz("BÖLÜM 8: ÖZET VE ÖRNEK TAHMINLER")
+
+def ozet_ve_tahmin(metinler, etiketler):
+    """
+    Tüm analizin özetini ve birkaç örnek metin üzerinde tahmin yapar.
+    """
+    baslik("8. ÖZET VE ÖRNEK TAHMİNLER")
+
     print("""
-TF-IDF ÖZETI:
-  TF-IDF = Term Frequency x Inverse Document Frequency
-  - TF: kelimenin dokümanda ne kadar geçtigi
-  - IDF: kelimenin tüm dokümanlarda ne kadar nadir oldugu
-  - TF-IDF: ikisinin çarpimi -> kelimenin doküman için önemi
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                         TF-IDF ÖZETİ                                │
+  ├─────────────────────────────────────────────────────────────────────┤
+  │ TF-IDF = TF × IDF                                                   │
+  │                                                                     │
+  │ Avantajları:                                                        │
+  │   + Basit, hızlı, anlaşılır                                         │
+  │   + İyi bir baseline (referans) model                               │
+  │   + Spam tespiti, konu sınıflandırma gibi işlerde etkili            │
+  │                                                                     │
+  │ Limitleri:                                                          │
+  │   − Anlamsal ilişki yok     → Word2Vec, GloVe, FastText             │
+  │   − Bağlam/kelime sırası yok → RNN, LSTM, Transformer               │
+  │   − Seyreklik               → SVD, PCA, Embedding                   │
+  │   − Boyut laneti            → t-SNE, UMAP                           │
+  └─────────────────────────────────────────────────────────────────────┘
+  """)
 
-TF-IDF NE ZAMAN KULLANILIR?
-  - Hizli ve basit çözüm gerektiginde
-  - Kelime sirasinin kritik olmadigi görevlerde (spam tespiti, konu siniflandirma)
-  - Küçük-orta ölçekli veri setlerinde
-  - Ilk prototip / baseline model olarak
+    # Örnek tahminler
+    print("  ÖRNEK TAHMİNLER:")
+    if metinler is None:
+        print("  Veri seti yüklenemediği için tahmin yapılamıyor.")
+        return
 
-TF-IDF SINIRLAMALARI VE ÇÖZÜMLERI:
-  | Sinirlama        | Sorun                              | Çözüm                     |
-  |------------------|------------------------------------|---------------------------|
-  | Anlamsal Iliski  | Es anlamlilar farkli ID'ler        | Word2Vec, GloVe, FastText |
-  | Baglam Kaybi     | Kelime sirasi yok sayilir          | RNN, LSTM, Transformer    |
-  | Seyreklik        | Vektörlerin %99+ sifir             | Embedding, SVD            |
-  | Boyut Laneti     | Yüksek boyutta mesafe anlamsiz     | PCA, t-SNE, UMAP          |
-""")
-
-    print("ÖRNEK TAHMIN (20 Newsgroups siniflandirici):")
-    kategoriler = ["rec.sport.baseball", "sci.space", "comp.graphics", "talk.politics.guns"]
-    newsgroups = fetch_20newsgroups(subset='all', categories=kategoriler,
-                                    shuffle=True, random_state=RANDOM_STATE)
-
-    ornek_metinler = [
-        "I love watching baseball games at the stadium with my family",
-        "The rocket launched successfully and reached orbit",
-        "The government should pass stricter gun control laws",
-        "I need help with rendering 3D graphics in Python",
+    ornekler = [
+        "TBMM'de yeni yasa teklifi görüşüldü",
+        "Fenerbahçe derbi maçı 3-2 kazandı",
+        "Apple yeni yapay zeka modelini tanıttı",
+        "Borsa İstanbul'da endeks yükselişle kapandı",
+        "Kültür Bakanlığı yeni sergi salonu açtı",
     ]
 
     model = make_pipeline(
-        TfidfVectorizer(stop_words='english', ngram_range=(1, 2),
-                         min_df=5, max_features=10000, sublinear_tf=True),
-        LogisticRegression(max_iter=1000, class_weight='balanced',
-                           random_state=RANDOM_STATE),
+        TfidfVectorizer(
+            ngram_range=(1, 2), min_df=5, max_features=10000, sublinear_tf=True
+        ),
+        LogisticRegression(
+            max_iter=1000, class_weight='balanced', random_state=RANDOM_STATE
+        ),
     )
-    model.fit(newsgroups.data, newsgroups.target)
+    model.fit(metinler, etiketler)
 
-    for metin in ornek_metinler:
-        p = model.predict([metin])[0]
-        prob = model.predict_proba([metin])[0]
-        en_iyi_idx = np.argmax(prob)
-        print(f"  '{metin[:50]}...'")
-        print(f"    -> {kategoriler[en_iyi_idx]} (%{prob[en_iyi_idx]*100:.1f})")
+    for metin in ornekler:
+        tahmin = model.predict([metin])[0]
+        olasiliklar = model.predict_proba([metin])[0]
+        en_yuksek = np.argmax(olasiliklar)
+        print(f"\n    \"{metin}\"")
+        print(f"    → {TTC4900_KATEGORILER[en_yuksek]} "
+              f"(%{olasiliklar[en_yuksek]*100:.1f})")
 
 
 # ======================================================================
-# ANA AKIS
+# ANA PROGRAM
 # ======================================================================
+
 def main():
     print("=" * 70)
-    print("  TF-IDF: TEORIDEN PRATIGE")
-    print("  Kapsamli Anlatim, Uygulama ve Analiz")
+    print("    TF-IDF: TEORİDEN PRATİĞE")
+    print("    Kapsamlı Anlatım, Uygulama ve Analiz")
     print("=" * 70)
 
-    bolum1_teori()
-    bolum2_manuel_hesaplama()
-    bolum3_scikit_learn()
-    bolum4_newsgroups()
-    acc, f1m, n_feat = bolum5_siniflandirma()
-    accs, f1s, evrs = bolum6_svd_analizi()
-    bolum7_limitler()
-    bolum8_ozet()
+    # 1. Teori
+    teori()
 
+    # 2. Manuel hesaplama
+    manuel_tfidf()
+
+    # 3. Scikit-learn ile TF-IDF
+    sklearn_tfidf()
+
+    # 4. TTC-4900 Türkçe veri seti
+    metinler, etiketler = turkce_veri_seti()
+
+    # 5. Sınıflandırma
+    dogruluk, f1, n_feat = siniflandirma(metinler, etiketler)
+
+    # 6. SVD analizi
+    svd_dogruluk, svd_f1, svd_evr = svd_analizi(metinler, etiketler)
+
+    # 7. TF-IDF limitleri
+    tfidf_limitleri()
+
+    # 8. Özet ve tahminler
+    ozet_ve_tahmin(metinler, etiketler)
+
+    # Sonuç tablosu
     print("\n" + "=" * 70)
-    print("SONUÇ TABLOSU")
+    print("    SONUÇ TABLOSU")
     print("=" * 70)
-    print(f"TF-IDF + Logistic Regression:  {n_feat} boyut -> Acc={acc:.4f}  F1={f1m:.4f}")
-    for i, k in enumerate([25, 50, 100, 200, 500]):
-        print(f"TF-IDF + SVD({k:3d}) + LogReg:    {k:5d} boyut -> Acc={accs[i]:.4f}  F1={f1s[i]:.4f}  varyans=%{100*evrs[i]:.1f}")
 
-    print(f"\nTüm görseller 'figures/' klasörüne kaydedildi.")
+    if dogruluk is not None:
+        print(f"\n  TF-IDF + Logistic Regression  →  {n_feat} boyut  "
+              f"Doğruluk={dogruluk:.4f}  F1={f1:.4f}")
+        for i, k in enumerate([25, 50, 100, 200, 500]):
+            print(f"  TF-IDF + SVD({k:3d}) + LogReg   →  {k:5d} boyut  "
+                  f"Doğruluk={svd_dogruluk[i]:.4f}  F1={svd_f1[i]:.4f}  "
+                  f"varyans=%{100*svd_evr[i]:.1f}")
+
+    print(f"\n  Tüm görseller '{FIG_DIR}/' klasörüne kaydedildi.")
     print("=" * 70)
 
 

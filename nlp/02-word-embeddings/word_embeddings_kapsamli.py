@@ -8,29 +8,19 @@ Word embeddings, kelimeleri anlamca yakın olanların birbirine yakın durduğu
 yoğun (dense) vektörlerle temsil eden bir yöntemdir. TF-IDF'in "anlam"
 eksikliğini giderir.
 
-Akış:
-  1) Kütüphaneler ve sabitler
-  2) BÖLÜM 1 — Teori: One-hot → Embedding mantığı
-  3) BÖLÜM 2 — Veri Yükleme: HuggingFace Keloğlan Türkçe Sentiment (630K)
-  4) BÖLÜM 3 — Word2Vec Eğitimi (gensim)
-  5) BÖLÜM 4 — FastText Eğitimi (gensim)
-  6) BÖLÜM 5 — t-SNE Görselleştirme + Benzer Kelimeler
-  7) BÖLÜM 6 — Sınıflandırma: TF-IDF vs Word2Vec vs FastText
-  8) BÖLÜM 7 — Sonuç Tablosu ve Özet
-
-Kaynak:
-  https://huggingface.co/datasets/engin1123/keloglan-turkish-sentiment-analysis-dataset
-  630K+ Türkçe yorum (Pozitif/Nötr/Negatif)
+Veri Seti: Keloğlan Türkçe Sentiment (630K+ yorum, 3 sınıf)
+           https://huggingface.co/datasets/engin1123/keloglan-turkish-sentiment-analysis-dataset
 
 Çalıştırma:
   pip install -r requirements.txt
   python word_embeddings_kapsamli.py
+
+Üretilenler:
+  figures/ -> tüm grafikler (PNG)
 """
 
 import os
-import sys
 import re
-import math
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -46,117 +36,108 @@ from sklearn.metrics import accuracy_score, f1_score, classification_report
 from sklearn.manifold import TSNE
 
 # ======================================================================
-# SABITLER
+# AYARLAR
 # ======================================================================
 FIG_DIR = "figures"
 RANDOM_STATE = 42
-SAMPLE_SIZE = 50000       # Hız için 50K örnek (toplam 630K)
+SAMPLE_SIZE = 50000       # hız için 50K örnek (toplam 630K)
 EMBEDDING_DIM = 100
 plt.rcParams["figure.dpi"] = 120
 
 
-# ======================================================================
-# YARDIMCI
-# ======================================================================
-def baslik_yaz(metin):
+def baslik(metin):
     print("\n" + "=" * 70)
-    print(metin)
+    print(f"  {metin}")
     print("=" * 70)
 
 
+def figuru_kaydet(isim):
+    os.makedirs(FIG_DIR, exist_ok=True)
+    yol = os.path.join(FIG_DIR, isim)
+    plt.savefig(yol, bbox_inches="tight")
+    plt.close()
+    print(f"  [kaydedildi] {yol}")
+
+
 # ======================================================================
-# BÖLÜM 1 — TEORI
+# 1 — TEORİ
 # ======================================================================
-def bolum1_teori():
-    baslik_yaz("BÖLÜM 1: WORD EMBEDDINGS TEORISI")
+
+def teori():
+    """One-hot encoding ile embedding arasındaki farkı açıklar."""
+    baslik("1. WORD EMBEDDINGS TEORİSİ")
+
     print("""
-One-Hot Encoding:
-  Her kelime = [0, 0, ..., 1, ..., 0]  (10.000 boyutlu, sadece 1 tane 1)
-  Sorun: "kral" ile "kralice" arasinda 0 benzerlik! Anlam yok.
+  🧩 One-Hot Encoding (TF-IDF'in temel sorunu)
+     Her kelime = [0, 0, ..., 1, ..., 0]
+     "kral" ve "kraliçe" arasında 0 benzerlik — anlam bilgisi yok!
 
-Word Embeddings:
-  Her kelime = [0.23, -0.45, 0.12, ..., 0.89]  (~100-300 boyutlu, yogun)
-  Anlamca yakin kelimeler => vektor uzayinda yakin!
-  "kral" ile "kralice" benzer => yuksek cosine similarity
+  🧩 Word Embeddings
+     Her kelime = [0.23, -0.45, 0.12, ..., 0.89] (100-300 boyutlu)
+     Anlamca yakın kelimeler → vektör uzayında yakın
+     "kral" ile "kraliçe" → yüksek cosine benzerlik
 
-Word2Vec (Mikolov et al., 2013):
-  - Skip-gram: Hedef kelimeden komsu kelimeleri tahmin et
-  - CBOW: Komsu kelimelerden hedef kelimeyi tahmin et
+  Word2Vec (Google, 2013):
+    Skip-gram: Hedef kelimeden komşu kelimeleri tahmin et
+    CBOW:      Komşu kelimelerden hedef kelimeyi tahmin et
 
-FastText (Bojanowski et al., 2016):
-  - Word2Vec + subword (karakter n-gram'lari)
-  - Bilinmeyen kelimeleri (OOV) de tahmin edebilir
-  - Morfolojik olarak zengin dillerde (Türkçe gibi) daha iyi
+  FastText (Facebook, 2016):
+    Word2Vec + karakter n-gram'ları (subword)
+    "futbol" → <fu, fut, utb, tbo, bol, ol>
+    Bilinmeyen kelimeleri de (OOV) tahmin edebilir
+    Türkçe gibi eklemeli dillerde çok daha güçlü
 
-GloVe (Pennington et al., 2014):
-  - Kelime birlikte görülme (co-occurrence) istatistiklerine dayali
-  - Matris faktorizasyonu + Word2Vec hibriti
-""")
+  GloVe (Stanford, 2014):
+    Global kelime birlikte-oluşum (co-occurrence) matrisine dayanır
+    Matris faktörizasyonu + Word2Vec hibriti
+  """)
 
 
 # ======================================================================
-# BÖLÜM 2 — VERI YÜKLEME
+# 2 — VERİ YÜKLEME
 # ======================================================================
-def bolum2_veri_yukle():
-    baslik_yaz("BÖLÜM 2: TÜRKÇE SENTIMENT VERI SETI YÜKLENIYOR")
 
-    print("Kaynak: engin1123/keloglan-turkish-sentiment-analysis-dataset")
-    print("(HuggingFace, 630.000+ Türkçe yorum, CC-BY-NC 4.0)")
+def veri_yukle():
+    """Keloğlan Türkçe Sentiment veri setini yükler ve temizler."""
+    baslik("2. TÜRKÇE SENTIMENT VERİ SETİ")
+
+    etiket_map = {0: "Negatif", 1: "Nötr", 2: "Pozitif"}
 
     try:
         from datasets import load_dataset
-        dataset = load_dataset("engin1123/keloglan-turkish-sentiment-analysis-dataset",
-                                split="train", streaming=False)
+        print("  HuggingFace'ten veri indiriliyor...")
+        dataset = load_dataset(
+            "engin1123/keloglan-turkish-sentiment-analysis-dataset",
+            split="train", streaming=False
+        )
         df = dataset.to_pandas()
     except Exception as e:
-        print(f"[HATA] HuggingFace verisi yüklenemedi: {e}")
-        print("[INFO] Basit örnek veri ile devam ediliyor...")
-        # Fallback: sentetik Türkçe veri
+        print(f"  [!] Veri yüklenemedi: {e}")
+        print("  Sentetik veri ile devam ediliyor...")
         np.random.seed(RANDOM_STATE)
-        pozitif = [
-            "harika ürün çok beğendim kesinlikle tavsiye ederim",
-            "mükemmel kalite ve hizmet herkese öneririm",
-            "çok güzel ve kaliteli tam istediğim gibi",
-            "fiyat performans ürünü kesinlikle harika",
-            "çok memnun kaldım tekrar alacağım",
-        ]
-        negatif = [
-            "berbat bir ürün hiç beğenmedim kesinlikle tavsiye etmiyorum",
-            "kalitesiz ve kötü para iadesi istiyorum",
-            "çok kötü kargoda hasarlı geldi hiç memnun kalmadım",
-            "beklediğim gibi çıkmadı hayal kırıklığı",
-            "rezalet bir alışveriş deneyimi yaşadım",
-        ]
-        notr = [
-            "ürün normal beklentimi karşıladı ne iyi ne kötü",
-            "ortalama bir ürün idare eder",
-            "fiyatına göre normal sayılabilir",
-            "beklediğim gibi çıktı sorun yok",
-            "standart bir ürün herhangi bir özelliği yok",
-        ]
-        texts = pozitif * 4000 + negatif * 3000 + notr * 3000
-        labels = [2]*len(pozitif*4000) + [0]*len(negatif*3000) + [1]*len(notr*3000)
+        pozitif = ["harika ürün çok beğendim kesinlikle tavsiye ederim"] * 4000
+        negatif = ["berbat bir ürün hiç beğenmedim tavsiye etmiyorum"] * 3000
+        notr = ["ürün normal beklentimi karşıladı ne iyi ne kötü"] * 3000
+        texts = pozitif + negatif + notr
+        labels = [2]*len(pozitif) + [0]*len(negatif) + [1]*len(notr)
         df = pd.DataFrame({"text": texts, "label": labels})
-        print(f"[INFO] Fallback: {len(df)} örnek oluşturuldu.")
 
-    # Etiket dağılımı
-    print(f"\nToplam örnek: {len(df)}")
-    print(f"Sütunlar: {list(df.columns)}")
-    etiket_map = {0: "Negatif", 1: "Nötr", 2: "Pozitif"}
-    print("\nEtiket dağılımı:")
+    print(f"\n  Toplam örnek: {len(df):,}")
+    print(f"  Sütunlar: {list(df.columns)}")
+
+    print("\n  Etiket dağılımı:")
     for l, name in etiket_map.items():
         count = (df["label"] == l).sum()
-        print(f"  {name}: {count} (%{100*count/len(df):.1f})")
+        print(f"    {name:8s}: {count:,} (%{100*count/len(df):.1f})")
 
-    # Örnek metinler
-    print("\nÖrnek metinler:")
+    print("\n  Örnek metinler:")
     for i in range(3):
-        print(f"  [{etiket_map[df['label'].iloc[i]]}] {df['text'].iloc[i][:80]}...")
+        print(f"    [{etiket_map[df['label'].iloc[i]]}] {df['text'].iloc[i][:80]}...")
 
     # Hız için örnekleme
     if len(df) > SAMPLE_SIZE:
         df = df.sample(n=SAMPLE_SIZE, random_state=RANDOM_STATE).reset_index(drop=True)
-        print(f"\nÖrnekleme: {SAMPLE_SIZE} metin kullanılacak.")
+        print(f"\n  Hız için örnekleme: {SAMPLE_SIZE:,} metin kullanılacak.")
 
     # Metin temizleme
     def temizle(text):
@@ -166,70 +147,84 @@ def bolum2_veri_yukle():
         return text
 
     df["clean_text"] = df["text"].apply(temizle)
-
-    # Tokenize
     df["tokens"] = df["clean_text"].apply(lambda x: x.split())
 
-    print(f"\nÖrnek temizlenmiş metin:")
-    print(f"  Ham:  {df['text'].iloc[0][:80]}")
-    print(f"  Temiz: {df['clean_text'].iloc[0][:80]}")
+    print("\n  Temizleme örneği:")
+    print(f"    Ham:    {df['text'].iloc[0][:80]}")
+    print(f"    Temiz:  {df['clean_text'].iloc[0][:80]}")
 
-    return df
+    # Etiket dağılım grafiği
+    sayilar = [(df["label"] == l).sum() for l in range(3)]
+    plt.figure(figsize=(6, 4))
+    bars = plt.bar(["Negatif", "Nötr", "Pozitif"], sayilar,
+                   color=["#d9534f", "#f0ad4e", "#5cb85c"])
+    for bar, sayi in zip(bars, sayilar):
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 100,
+                 f"{sayi:,}", ha='center', fontsize=10)
+    plt.title("Sınıf Dağılımı")
+    plt.tight_layout()
+    figuru_kaydet("01_sinif_dagilimi.png")
+
+    return df, etiket_map
 
 
 # ======================================================================
-# BÖLÜM 3 — WORD2VEC
+# 3 — WORD2VEC
 # ======================================================================
-def bolum3_word2vec(df):
-    baslik_yaz("BÖLÜM 3: WORD2VEC EĞITIMI (gensim)")
+
+def word2vec_egit(df):
+    """Gensim Word2Vec modelini eğitir ve benzer kelimeleri gösterir."""
+    baslik("3. WORD2VEC EĞİTİMİ (Gensim)")
 
     try:
         from gensim.models import Word2Vec
     except ImportError:
-        print("[HATA] gensim yüklü değil. pip install gensim")
-        return None, None
+        print("  [!] gensim yüklü değil: pip install gensim")
+        return None
 
     sentences = df["tokens"].tolist()
-    print(f"Toplam cümle: {len(sentences)}")
-    print(f"Kelime dağarcığı oluşturuluyor...")
+    print(f"  Cümle sayısı: {len(sentences):,}")
 
+    print("  Model eğitiliyor (Skip-gram)...")
     model = Word2Vec(
         sentences=sentences,
         vector_size=EMBEDDING_DIM,
         window=5,
         min_count=5,
         workers=4,
-        sg=1,         # Skip-gram (1) / CBOW (0)
+        sg=1,          # Skip-gram
         seed=RANDOM_STATE,
     )
 
-    print(f"\nKelime dağarcığı: {len(model.wv)} kelime")
-    print(f"Vektör boyutu: {model.wv.vector_size}")
+    print(f"\n  Kelime dağarcığı: {len(model.wv):,} kelime")
+    print(f"  Vektör boyutu:    {model.wv.vector_size}")
 
-    # Benzer kelime örnekleri (Türkçe)
-    print("\nBenzer kelime örnekleri:")
-    ornek_kelimeler = ["güzel", "kötü", "ürün", "fiyat", "harika"]
-    for word in ornek_kelimeler:
+    print("\n  Benzer kelime örnekleri:")
+    for word in ["güzel", "kötü", "ürün", "fiyat", "harika"]:
         if word in model.wv:
-            similar = model.wv.most_similar(word, topn=5)
-            print(f"  '{word}' -> {[s[0] for s in similar]}")
+            benzer = model.wv.most_similar(word, topn=5)
+            print(f"    '{word}' → {', '.join([s[0] for s in benzer])}")
 
-    return model, sentences
+    return model
 
 
 # ======================================================================
-# BÖLÜM 4 — FASTTEXT
+# 4 — FASTTEXT
 # ======================================================================
-def bolum4_fasttext(df):
-    baslik_yaz("BÖLÜM 4: FASTTEXT EĞITIMI (gensim)")
+
+def fasttext_egit(df):
+    """Gensim FastText modelini eğitir ve OOV yeteneğini gösterir."""
+    baslik("4. FASTTEXT EĞİTİMİ (Gensim)")
 
     try:
         from gensim.models import FastText
     except ImportError:
-        print("[HATA] gensim yüklü değil.")
+        print("  [!] gensim yüklü değil.")
         return None
 
     sentences = df["tokens"].tolist()
+    print("  Model eğitiliyor (Skip-gram + subword)...")
+
     model = FastText(
         sentences=sentences,
         vector_size=EMBEDDING_DIM,
@@ -240,120 +235,122 @@ def bolum4_fasttext(df):
         seed=RANDOM_STATE,
     )
 
-    print(f"Kelime dağarcığı: {len(model.wv)} kelime")
-    print(f"Vektör boyutu: {model.wv.vector_size}")
+    print(f"\n  Kelime dağarcığı: {len(model.wv):,} kelime")
+    print(f"  Vektör boyutu:    {model.wv.vector_size}")
 
-    # OOV testi: modelde olmayan bir kelime
-    print("\nOOV (Out-of-Vocabulary) Testi:")
-    test_words = ["güzellik", "kötülük", "ürüncük", "harikalı"]
-    for word in test_words:
+    # OOV testi: modelin eğitimde görmediği yeni kelimeler
+    print("\n  FastText'in asıl gücü: Görmediği kelimeler (OOV)")
+    test_kelimeleri = ["güzellik", "kötülükçü", "ürüncükler", "harikalık"]
+    for word in test_kelimeleri:
         if word in model.wv:
-            similar = model.wv.most_similar(word, topn=3)
-            print(f"  '{word}' (OOV) -> {[s[0] for s in similar]}")
+            benzer = model.wv.most_similar(word, topn=3)
+            print(f"    '{word}' (YOK) → {', '.join([s[0] for s in benzer])}")
         else:
-            # FastText subword sayesinde OOV için vektör üretebilir
-            print(f"  '{word}' (OOV) -> vektör var: {word in model.wv}")
+            print(f"    '{word}' (YOK) → vektör üretilemedi")
 
     return model
 
 
 # ======================================================================
-# BÖLÜM 5 — t-SNE GÖRSELLESTIRME
+# 5 — t-SNE GÖRSELLEŞTİRME
 # ======================================================================
-def bolum5_tsne_ve_analoji(model, model_ft, df):
-    baslik_yaz("BÖLÜM 5: t-SNE GÖRSELLESTIRME VE ANALOJI TESTLERI")
 
-    os.makedirs(FIG_DIR, exist_ok=True)
+def tsne_gorsellestir(model):
+    """Word2Vec vektörlerini t-SNE ile 2 boyuta indirip görselleştirir."""
+    baslik("5. t-SNE İLE KELİME VEKTÖRLERİNİ 2D GÖRSELLEŞTİRME")
 
-    # t-SNE ile kelime vektörlerini 2 boyuta indirge
-    print("t-SNE ile kelime vektörleri 2 boyuta indirgeniyor...")
-    kelimeler = ["güzel", "harika", "mükemmel", "iyi", "süper",
-                 "kötü", "berbat", "çirkin", "pis", "rezalet",
-                 "fiyat", "para", "kalite", "ürün", "hizmet",
-                 "hızlı", "yavaş", "büyük", "küçük", "ucuz",
-                 "pahalı", "temiz", "kirli", "kolay", "zor"]
+    if model is None:
+        print("  Model yok, atlanıyor.")
+        return
 
-    # Modelde var olan kelimeleri filtrele
-    if model is not None:
-        kelimeler = [w for w in kelimeler if w in model.wv]
-        vektorler = np.array([model.wv[w] for w in kelimeler])
+    kelimeler = [
+        "güzel", "harika", "mükemmel", "iyi", "süper",
+        "kötü", "berbat", "çirkin", "pis", "rezalet",
+        "fiyat", "para", "kalite", "ürün", "hizmet",
+        "hızlı", "yavaş", "büyük", "küçük", "ucuz",
+        "pahalı", "temiz", "kirli", "kolay", "zor",
+    ]
 
-        tsne = TSNE(n_components=2, random_state=RANDOM_STATE, perplexity=5)
-        xy = tsne.fit_transform(vektorler)
+    kelimeler = [w for w in kelimeler if w in model.wv]
+    vektorler = np.array([model.wv[w] for w in kelimeler])
 
-        plt.figure(figsize=(12, 10))
-        pozitif_kel = ["güzel", "harika", "mükemmel", "iyi", "süper", "hızlı", "temiz", "kolay", "kalite"]
-        for i, word in enumerate(kelimeler):
-            renk = "green" if word in pozitif_kel else "red"
-            plt.scatter(xy[i, 0], xy[i, 1], c=renk, s=100, alpha=0.7)
-            plt.annotate(word, (xy[i, 0], xy[i, 1]), fontsize=10, ha='center',
-                        bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7))
+    print(f"  {len(kelimeler)} kelime 2 boyuta indirgeniyor...")
+    tsne = TSNE(n_components=2, random_state=RANDOM_STATE, perplexity=5)
+    xy = tsne.fit_transform(vektorler)
 
-        plt.title("Word2Vec: Türkçe Kelime Vektörleri (t-SNE)", fontsize=14)
-        plt.xlabel("t-SNE Bileşen 1")
-        plt.ylabel("t-SNE Bileşen 2")
-        plt.grid(True, alpha=0.3)
-        out = os.path.join(FIG_DIR, "02_tsne_word2vec.png")
-        plt.savefig(out, bbox_inches="tight")
-        plt.close()
-        print(f"[görsel] t-SNE -> {out}")
+    pozitif = {"güzel", "harika", "mükemmel", "iyi", "süper", "hızlı", "temiz", "kolay", "kalite"}
 
-    # Analoji testi
-    print("\nAnaloji Testleri (Word2Vec):")
-    if model is not None:
-        analojiler = [
-            ("kral", "kraliçe", "adam"),
-            ("iyi", "kötü", "güzel"),
-            ("sıcak", "soğuk", "büyük"),
-        ]
-        for a, b, c in analojiler:
-            if all(w in model.wv for w in [a, b, c]):
-                try:
-                    sonuc = model.wv.most_similar(positive=[b, c], negative=[a], topn=1)
-                    print(f"  '{a}' - '{b}' = '{c}' - ? -> '{sonuc[0][0]}' ({sonuc[0][1]:.3f})")
-                except:
-                    pass
+    plt.figure(figsize=(12, 10))
+    for i, word in enumerate(kelimeler):
+        renk = "#5cb85c" if word in pozitif else "#d9534f"
+        plt.scatter(xy[i, 0], xy[i, 1], c=renk, s=100, alpha=0.7)
+        plt.annotate(word, (xy[i, 0], xy[i, 1]), fontsize=10, ha='center',
+                     bbox=dict(boxstyle="round,pad=0.2", facecolor="white", alpha=0.7))
 
-    return model
+    plt.title("Word2Vec: Türkçe Kelime Vektörleri (t-SNE)", fontsize=14)
+    plt.xlabel("t-SNE Bileşen 1")
+    plt.ylabel("t-SNE Bileşen 2")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    figuru_kaydet("02_tsne_word2vec.png")
+
+    # Vektör aritmetiği
+    print("\n  Vektör Aritmetiği (Analoji):")
+    print("  'Kral - Erkek + Kadın = Kraliçe' benzeri testler...")
+    analojiler = [
+        ("kral", "kraliçe", "adam"),
+        ("iyi", "kötü", "güzel"),
+    ]
+    for a, b, c in analojiler:
+        if all(w in model.wv for w in [a, b, c]):
+            try:
+                sonuc = model.wv.most_similar(positive=[b, c], negative=[a], topn=1)
+                print(f"    '{a}' - '{b}' = '{c}' - ? → '{sonuc[0][0]}' ({sonuc[0][1]:.3f})")
+            except Exception:
+                pass
 
 
 # ======================================================================
-# BÖLÜM 6 — SINIFLANDIRMA KARŞILAŞTIRMASI
+# 6 — SINIFLANDIRMA KARŞILAŞTIRMASI
 # ======================================================================
-def bolum6_siniflandirma(df, model_w2v, model_ft):
-    baslik_yaz("BÖLÜM 6: SINIFLANDIRMA KARŞILAŞTIRMASI")
+
+def siniflandirma_karsilastir(df, model_w2v, model_ft):
+    """TF-IDF vs Word2Vec vs FastText sınıflandırma performans karşılaştırması."""
+    baslik("6. TF-IDF vs WORD2VEC vs FASTTEXT SINIFLANDIRMA KARŞILAŞTIRMASI")
 
     X = df["clean_text"].to_numpy()
     y = df["label"].to_numpy()
 
     X_tr, X_te, y_tr, y_te = train_test_split(
-        X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y)
+        X, y, test_size=0.2, random_state=RANDOM_STATE, stratify=y
+    )
 
-    print(f"Eğitim: {len(X_tr)} | Test: {len(X_te)}")
-    print()
+    print(f"  Eğitim: {len(X_tr):,} | Test: {len(X_te):,}\n")
+    sonuclar = {}
 
-    sonuclar = []
-
-    # --- 6.1 TF-IDF + Logistic Regression ---
-    print("[1/3] TF-IDF + Logistic Regression çalışıyor...")
-    tfidf = TfidfVectorizer(max_features=5000, stop_words=None)
+    # TF-IDF + Logistic Regression
+    print("  [1/3] TF-IDF + Logistic Regression...")
+    tfidf = TfidfVectorizer(max_features=5000)
     X_tr_tfidf = tfidf.fit_transform(X_tr)
     X_te_tfidf = tfidf.transform(X_te)
 
     clf_tfidf = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
     clf_tfidf.fit(X_tr_tfidf, y_tr)
-    pred_tfidf = clf_tfidf.predict(X_te_tfidf)
-    acc_tfidf = accuracy_score(y_te, pred_tfidf)
-    f1_tfidf = f1_score(y_te, pred_tfidf, average='weighted')
-    sonuclar.append(("TF-IDF", tfidf.get_feature_names_out().shape[0], acc_tfidf, f1_tfidf))
-    print(f"  TF-IDF: Acc={acc_tfidf:.4f}  F1={f1_tfidf:.4f}")
+    pred = clf_tfidf.predict(X_te_tfidf)
+    sonuclar["TF-IDF"] = {
+        "boyut": tfidf.max_features,
+        "acc": accuracy_score(y_te, pred),
+        "f1": f1_score(y_te, pred, average='weighted'),
+    }
+    print(f"    Doğruluk: {sonuclar['TF-IDF']['acc']:.4f}  "
+          f"F1: {sonuclar['TF-IDF']['f1']:.4f}")
 
-    # --- 6.2 Word2Vec + Logistic Regression ---
-    print("[2/3] Word2Vec + Logistic Regression çalışıyor...")
+    # Word2Vec + Logistic Regression
+    print("  [2/3] Word2Vec + Logistic Regression...")
     if model_w2v is not None:
         def dokuman_vektoru(tokens, model):
             vektorler = [model.wv[w] for w in tokens if w in model.wv]
-            if len(vektorler) == 0:
+            if not vektorler:
                 return np.zeros(model.wv.vector_size)
             return np.mean(vektorler, axis=0)
 
@@ -362,18 +359,21 @@ def bolum6_siniflandirma(df, model_w2v, model_ft):
 
         clf_w2v = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
         clf_w2v.fit(X_tr_w2v, y_tr)
-        pred_w2v = clf_w2v.predict(X_te_w2v)
-        acc_w2v = accuracy_score(y_te, pred_w2v)
-        f1_w2v = f1_score(y_te, pred_w2v, average='weighted')
-        sonuclar.append(("Word2Vec", EMBEDDING_DIM, acc_w2v, f1_w2v))
-        print(f"  Word2Vec: Acc={acc_w2v:.4f}  F1={f1_w2v:.4f}")
+        pred = clf_w2v.predict(X_te_w2v)
+        sonuclar["Word2Vec"] = {
+            "boyut": EMBEDDING_DIM,
+            "acc": accuracy_score(y_te, pred),
+            "f1": f1_score(y_te, pred, average='weighted'),
+        }
+        print(f"    Doğruluk: {sonuclar['Word2Vec']['acc']:.4f}  "
+              f"F1: {sonuclar['Word2Vec']['f1']:.4f}")
 
-    # --- 6.3 FastText + Logistic Regression ---
-    print("[3/3] FastText + Logistic Regression çalışıyor...")
+    # FastText + Logistic Regression
+    print("  [3/3] FastText + Logistic Regression...")
     if model_ft is not None:
         def dokuman_vektoru_ft(tokens, model):
             vektorler = [model.wv[w] for w in tokens if w in model.wv]
-            if len(vektorler) == 0:
+            if not vektorler:
                 return np.zeros(model.wv.vector_size)
             return np.mean(vektorler, axis=0)
 
@@ -382,30 +382,31 @@ def bolum6_siniflandirma(df, model_w2v, model_ft):
 
         clf_ft = LogisticRegression(max_iter=1000, random_state=RANDOM_STATE)
         clf_ft.fit(X_tr_ft, y_tr)
-        pred_ft = clf_ft.predict(X_te_ft)
-        acc_ft = accuracy_score(y_te, pred_ft)
-        f1_ft = f1_score(y_te, pred_ft, average='weighted')
-        sonuclar.append(("FastText", EMBEDDING_DIM, acc_ft, f1_ft))
-        print(f"  FastText: Acc={acc_ft:.4f}  F1={f1_ft:.4f}")
+        pred = clf_ft.predict(X_te_ft)
+        sonuclar["FastText"] = {
+            "boyut": EMBEDDING_DIM,
+            "acc": accuracy_score(y_te, pred),
+            "f1": f1_score(y_te, pred, average='weighted'),
+        }
+        print(f"    Doğruluk: {sonuclar['FastText']['acc']:.4f}  "
+              f"F1: {sonuclar['FastText']['f1']:.4f}")
 
     # Sonuç tablosu
-    print("\n" + "=" * 60)
-    print("SONUÇ KARŞILAŞTIRMA TABLOSU")
-    print("=" * 60)
-    print(f"{'Yöntem':12s} | {'Boyut':8s} | {'Accuracy':10s} | {'F1':10s}")
-    print("-" * 60)
-    for name, dim, acc, f1 in sonuclar:
-        print(f"{name:12s} | {dim:<8d} | {acc:<10.4f} | {f1:<10.4f}")
+    print("\n  " + "=" * 60)
+    print(f"  {'Yöntem':12s} | {'Boyut':8s} | {'Doğruluk':10s} | {'F1':10s}")
+    print("  " + "-" * 60)
+    for name, s in sonuclar.items():
+        print(f"  {name:12s} | {s['boyut']:<8d} | {s['acc']:<10.4f} | {s['f1']:<10.4f}")
 
-    # Görsel: karşılaştırma
-    os.makedirs(FIG_DIR, exist_ok=True)
+    # Karşılaştırma grafiği
+    isimler = list(sonuclar.keys())
+    accs = [sonuclar[n]["acc"] for n in isimler]
+    f1s = [sonuclar[n]["f1"] for n in isimler]
+
     fig, ax = plt.subplots(figsize=(8, 5))
-    isimler = [s[0] for s in sonuclar]
-    accs = [s[2] for s in sonuclar]
-    f1s = [s[3] for s in sonuclar]
     x = np.arange(len(isimler))
     w = 0.35
-    ax.bar(x - w/2, accs, w, label='Accuracy', color='#0275d8')
+    ax.bar(x - w/2, accs, w, label='Doğruluk', color='#0275d8')
     ax.bar(x + w/2, f1s, w, label='F1 (weighted)', color='#5cb85c')
     ax.set_xticks(x)
     ax.set_xticklabels(isimler)
@@ -416,67 +417,72 @@ def bolum6_siniflandirma(df, model_w2v, model_ft):
         ax.text(i - w/2, acc + 0.01, f"{acc:.3f}", ha='center', fontsize=9)
         ax.text(i + w/2, f1 + 0.01, f"{f1:.3f}", ha='center', fontsize=9)
     fig.tight_layout()
-    out = os.path.join(FIG_DIR, "03_classification_comparison.png")
-    fig.savefig(out, bbox_inches="tight")
-    plt.close(fig)
-    print(f"[görsel] Sınıflandırma karşılaştırması -> {out}")
+    figuru_kaydet("03_classification_comparison.png")
 
     return sonuclar
 
 
 # ======================================================================
-# BÖLÜM 7 — ÖZET
+# 7 — ÖZET
 # ======================================================================
-def bolum7_ozet():
-    baslik_yaz("BÖLÜM 7: ÖZET VE KARŞILAŞTIRMA")
+
+def ozet(sonuclar):
+    """Tüm yöntemlerin karşılaştırmalı özeti."""
+    baslik("7. ÖZET VE KARŞILAŞTIRMA")
+
     print("""
-ÖZET: Word Embeddings vs TF-IDF
-=================================
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                            ÖZET                                     │
+  ├───────────────┬──────────────────────────┬──────────────────────────┤
+  │ TF-IDF        │ + Basit, hızlı           │ - Anlam bilgisi yok       │
+  │               │ + Yorumlanabilir          │ - Bag-of-words           │
+  │               │ + Stop-words otomatik     │ - Seyrek vektörler       │
+  ├───────────────┼──────────────────────────┼──────────────────────────┤
+  │ Word2Vec      │ + Anlamsal ilişkiler      │ - Eğitimi yavaş          │
+  │               │ + Yoğun vektörler         │ - Daha fazla veri ister   │
+  │               │ + Cosine benzerlik        │ - OOV kelimeler yok       │
+  ├───────────────┼──────────────────────────┼──────────────────────────┤
+  │ FastText      │ + Word2Vec + subword      │ - Daha yavaş             │
+  │               │ + OOV kelimeleri bilir    │ - Daha fazla RAM          │
+  │               │ + Türkçe gibi eklemeli    │                          │
+  │               │   diller için ideal       │                          │
+  └───────────────┴──────────────────────────┴──────────────────────────┘
+  """)
 
-TF-IDF:
-  + Basit, hızlı, yorumlanabilir
-  + Seyrek vektörler (sparse)
-  + Stop-word'leri otomatik düşürür
-  - Kelime anlamını bilmez
-  - Bag-of-words (kelime sırası yok)
+    if sonuclar:
+        print("  Nihai sıralama:")
+        sirali = sorted(sonuclar.items(), key=lambda x: x[1]["acc"], reverse=True)
+        for i, (name, s) in enumerate(sirali):
+            print(f"    {i+1}. {name:12s} → Doğruluk: {s['acc']:.4f}")
 
-Word Embeddings (Word2Vec / FastText):
-  + Kelimelerin anlamını öğrenir
-  + Yoğun vektörler (dense, ~100-300 boyut)
-  + Cosine similarity anlamlıdır
-  + FastText: OOV kelimeleri de tahmin edebilir
-  - Daha fazla veri gerekir
-  - Eğitimi daha yavaş
-  - Yorumlaması zor
-
-Ne Zaman Hangisi?
-  - TF-IDF: Küçük veri, hızlı prototip, baseline
-  - Word2Vec: Orta-büyük veri, anlamsal benzerlik önemliyse
-  - FastText: Türkçe gibi sondan eklemeli dillerde
-  - BERT: En iyi performans (ama çok daha yavaş)
-""")
+    print("\n  Ne zaman hangisi?")
+    print("    TF-IDF   → Küçük veri, hızlı prototip, baseline")
+    print("    Word2Vec → Orta-büyük veri, anlamsal benzerlik önemliyse")
+    print("    FastText → Türkçe gibi sondan eklemeli dillerde")
+    print("    BERT     → En iyi performans (ama çok daha yavaş/ağır)")
 
 
 # ======================================================================
-# ANA AKIŞ
+# ANA PROGRAM
 # ======================================================================
+
 def main():
     print("=" * 70)
-    print("  WORD EMBEDDINGS: WORD2VEC, FASTTEXT ve TF-IDF")
-    print("  Kapsamli Anlatim, Uygulama ve Analiz")
+    print("    WORD EMBEDDINGS: WORD2VEC, FASTTEXT ve TF-IDF")
+    print("    Kapsamlı Anlatım, Uygulama ve Karşılaştırma")
     print("=" * 70)
 
-    bolum1_teori()
-    df = bolum2_veri_yukle()
-    model_w2v, sentences = bolum3_word2vec(df)
-    model_ft = bolum4_fasttext(df)
-    bolum5_tsne_ve_analoji(model_w2v, model_ft, df)
-    sonuclar = bolum6_siniflandirma(df, model_w2v, model_ft)
-    bolum7_ozet()
+    teori()
+    df, etiket_map = veri_yukle()
+    model_w2v = word2vec_egit(df)
+    model_ft = fasttext_egit(df)
+    tsne_gorsellestir(model_w2v)
+    sonuclar = siniflandirma_karsilastir(df, model_w2v, model_ft)
+    ozet(sonuclar)
 
     print("\n" + "=" * 70)
-    print("TAMAMLANDI")
-    print(f"Tüm görseller 'figures/' klasörüne kaydedildi.")
+    print("    TAMAMLANDI")
+    print(f"    Tüm görseller '{FIG_DIR}/' klasörüne kaydedildi.")
     print("=" * 70)
 
 
