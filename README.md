@@ -1,6 +1,6 @@
 # Softito YZ Yazılımcılığı Programı
 
-NLP (Doğal Dil İşleme), ML (Makine Öğrenmesi) ve Docker ile konteynerizasyon alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
+NLP (Doğal Dil İşleme), ML (Makine Öğrenmesi), Docker ve RAG ile konteynerizasyon alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
 
 ## NLP Projeleri
 
@@ -61,6 +61,17 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 
 **Not:** Bu projelerde ML/NLP yoktur. Amaç Docker'ın temel yapı taşlarını (Dockerfile, Compose, volume, network) kavramaktır.
 
+## RAG Projeleri
+
+🔍 Belgelerinizden soru-cevap yapan 2 RAG sistemi. API'li ve tamamen yerel:
+
+| # | Proje | Konu | Embedding | Vektör DB | Bağımlılık |
+|---|-------|------|-----------|-----------|------------|
+| 01 | [Belge Tabanlı Sorgulama](rag/01-belge-tabanli-sorgulama) | RAG pipeline'ı adım adım kurma | OpenAI | FAISS | OpenAI API |
+| 02 | [Yerel Vektör İndeksleme](rag/02-yerel-vektor-indeksleme) | İnternetsiz, tamamen yerel RAG | HuggingFace | ChromaDB | Yok |
+
+**Not:** İlk proje RAG'ın teorisini, ikinci proje production'a yakın kullanımını gösterir.
+
 ## Nasıl Çalıştırılır
 
 ### NLP Projeleri (Python script)
@@ -106,6 +117,10 @@ Notebook'u açıp hücreleri sırayla çalıştırın. Her notebook bağımsızd
 │   ├── 01-web-kaziyici/        # Tek konteyner
 │   ├── 02-log-izleyici/        # Docker Compose, 2 servis
 │   └── 03-is-emri-kuyrugu/     # Docker Compose, 3 servis + volume
+│
+└── rag/                        # RAG pratikleri
+    ├── 01-belge-tabanli-sorgulama/   # OpenAI API ile RAG
+    └── 02-yerel-vektor-indeksleme/   # Tamamen yerel RAG
 ```
 
 ## Gereksinimler
