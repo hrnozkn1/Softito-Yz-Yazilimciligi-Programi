@@ -1,0 +1,24 @@
+services:
+  uretim:
+    build: .
+    container_name: uretim
+    command: ["python", "-u", "uretim.py"]
+    volumes:
+      - shared_data:/app/data
+
+  islem:
+    build: .
+    container_name: islem
+    command: ["python", "-u", "islem.py"]
+    volumes:
+      - shared_data:/app/data
+
+  rapor:
+    build: .
+    container_name: rapor
+    command: ["python", "-u", "rapor.py"]
+    volumes:
+      - shared_data:/app/data
+
+volumes:
+  shared_data:

@@ -51,15 +51,13 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 
 ## Docker Projeleri
 
-> 🐳 Docker pratikleri ayrı bir repoda: **[softito-docker-pratikleri](https://github.com/hrnozkn1/softito-docker-pratikleri)**
-
-Tek konteynerden çok servisli mimariye, basitten karmaşığa ilerleyen 3 proje:
+🐳 Tek konteynerden çok servisli mimariye, basitten karmaşığa ilerleyen 3 proje:
 
 | # | Proje | Konu | Docker Komutu | Seviye |
 |---|-------|------|---------------|--------|
-| 01 | [Web Kazıyıcı](https://github.com/hrnozkn1/softito-docker-pratikleri/tree/main/01-web-kaziyici) | Dockerfile · Volume mount · Konteyner yaşam döngüsü | `docker build` / `docker run` | ⭐ Giriş |
-| 02 | [Log İzleyici](https://github.com/hrnozkn1/softito-docker-pratikleri/tree/main/02-log-izleyici) | Docker Compose · Servis ağı · Container logs | `docker compose up` | ⭐⭐ Orta |
-| 03 | [İş Emri Kuyruğu](https://github.com/hrnozkn1/softito-docker-pratikleri/tree/main/03-is-emri-kuyrugu) | Docker Compose · Shared volume · Producer-consumer | `docker compose up` | ⭐⭐ Orta |
+| 01 | [Web Kazıyıcı](docker/01-web-kaziyici) | Dockerfile · Volume mount · Konteyner yaşam döngüsü | `docker build` / `docker run` | ⭐ Giriş |
+| 02 | [Log İzleyici](docker/02-log-izleyici) | Docker Compose · Servis ağı · Container logs | `docker compose up` | ⭐⭐ Orta |
+| 03 | [İş Emri Kuyruğu](docker/03-is-emri-kuyrugu) | Docker Compose · Shared volume · Producer-consumer | `docker compose up` | ⭐⭐ Orta |
 
 **Not:** Bu projelerde ML/NLP yoktur. Amaç Docker'ın temel yapı taşlarını (Dockerfile, Compose, volume, network) kavramaktır.
 
@@ -104,10 +102,10 @@ Notebook'u açıp hücreleri sırayla çalıştırın. Her notebook bağımsızd
 │   ├── proje_adi.ipynb          # Jupyter Notebook
 │   └── *.csv                    # veri setleri
 │
-└── docker/                     # Ayrı repo: softito-docker-pratikleri
-    ├── 01-web-kaziyici/        # Tek konteyner
-    ├── 02-log-izleyici/        # Docker Compose, 2 servis
-    └── 03-is-emri-kuyrugu/     # Docker Compose, 3 servis + volume
+├── docker/                     # Docker pratikleri
+│   ├── 01-web-kaziyici/        # Tek konteyner
+│   ├── 02-log-izleyici/        # Docker Compose, 2 servis
+│   └── 03-is-emri-kuyrugu/     # Docker Compose, 3 servis + volume
 ```
 
 ## Gereksinimler

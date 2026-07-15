@@ -1,0 +1,12 @@
+services:
+  uretici:
+    build: ./log-uretici
+    container_name: uretici
+
+  izleyici:
+    build: ./log-izleyici
+    container_name: izleyici
+    depends_on:
+      - uretici
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
