@@ -53,11 +53,11 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 
 🐳 Tek konteynerden çok servisli mimariye, basitten karmaşığa ilerleyen 3 proje:
 
-| # | Proje | Konu | Docker Komutu | Seviye |
-|---|-------|------|---------------|--------|
-| 01 | [Web Kazıyıcı](docker/01-web-kaziyici) | Dockerfile · Volume mount · Konteyner yaşam döngüsü | `docker build` / `docker run` | ⭐ Giriş |
-| 02 | [Log İzleyici](docker/02-log-izleyici) | Docker Compose · Servis ağı · Container logs | `docker compose up` | ⭐⭐ Orta |
-| 03 | [İş Emri Kuyruğu](docker/03-is-emri-kuyrugu) | Docker Compose · Shared volume · Producer-consumer | `docker compose up` | ⭐⭐ Orta |
+| # | Proje | Konu | Docker Komutu |
+|---|-------|------|---------------|
+| 01 | [Web Kazıyıcı](docker/01-web-kaziyici) | Dockerfile · Volume mount · Konteyner yaşam döngüsü | `docker build` / `docker run` |
+| 02 | [Log İzleyici](docker/02-log-izleyici) | Docker Compose · Servis ağı · Container logs | `docker compose up` |
+| 03 | [İş Emri Kuyruğu](docker/03-is-emri-kuyrugu) | Docker Compose · Shared volume · Producer-consumer | `docker compose up` |
 
 **Not:** Bu projelerde ML/NLP yoktur. Amaç Docker'ın temel yapı taşlarını (Dockerfile, Compose, volume, network) kavramaktır.
 

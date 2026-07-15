@@ -6,11 +6,11 @@ Docker'ın temellerini kavramak için 3 proje. Basitten karmaşığa: tek kontey
 
 ## 📁 Projeler
 
-| # | Proje | Konu | Docker Komutu | Seviye |
-|---|-------|------|---------------|--------|
-| 01 | [Web Kazıyıcı](01-web-kaziyici) | Dockerfile · Volume mount · Konteyner yaşam döngüsü | `docker build` / `docker run` | ⭐ Giriş |
-| 02 | [Log İzleyici](02-log-izleyici) | Docker Compose · Servis ağı · Container logs | `docker compose up` | ⭐⭐ Orta |
-| 03 | [İş Emri Kuyruğu](03-is-emri-kuyrugu) | Docker Compose · Shared volume · Producer-consumer | `docker compose up` | ⭐⭐ Orta |
+| # | Proje | Konu | Docker Komutu |
+|---|-------|------|---------------|
+| 01 | [Web Kazıyıcı](01-web-kaziyici) | Dockerfile · Volume mount · Konteyner yaşam döngüsü | `docker build` / `docker run` |
+| 02 | [Log İzleyici](02-log-izleyici) | Docker Compose · Servis ağı · Container logs | `docker compose up` |
+| 03 | [İş Emri Kuyruğu](03-is-emri-kuyrugu) | Docker Compose · Shared volume · Producer-consumer | `docker compose up` |
 
 ---
 
