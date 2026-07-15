@@ -1,6 +1,6 @@
 # Softito YZ Yazılımcılığı Programı
 
-NLP (Doğal Dil İşleme), ML (Makine Öğrenmesi), Docker, RAG ve LLM alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
+NLP, ML, Docker, RAG, LLM, Görüntü İşleme, Big Data ve SLM alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
 
 ## NLP Projeleri
 
@@ -80,6 +80,33 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 | 02 | [LLM Değerlendirme](llm/02-llm-degerlendirme) | Sampling → BLEU/ROUGE/Perplexity → LLM-as-Judge |
 | 03 | [RLHF + DPO](llm/03-rlhf-dpo) | Reward model → PPO → DPO → karşılaştırma |
 
+## Görüntü İşleme
+
+🖼️ OpenCV, PyTorch ile görüntü işleme ve nesne tespiti:
+
+| Proje | Konu | Veri Seti |
+|-------|------|-----------|
+| [Temel Görüntü İşleme](goruntu-isleme/temel-goruntu-isleme) | Piksel, filtre, kenar, morfoloji | scipy + kendi fotoğrafların |
+| [Nesne Tespiti](goruntu-isleme/nesne-tespiti) | YOLO/SSD ile nesne bulma | COCO128 |
+| [Derin Öğrenme Görüntü](goruntu-isleme/derin-ogrenme-goruntu) | CNN ile sınıflandırma | CIFAR-10 |
+
+## Big Data
+
+📊 Dağıtık sistem simülasyonları ve veri analizi:
+
+| Proje | Konu |
+|-------|------|
+| [Dağıtık Sistem Simülasyonu](BigData/dagik-sistem-simulasyonu) | HDFS, YARN, Spark thread simülasyonları |
+| [Veri Drift Tespiti](BigData/veri-drift-tespiti) | KS-test, JS Divergence, Wasserstein |
+
+## SLM
+
+🧠 Küçük dil modelleri:
+
+| Proje | Konu |
+|-------|------|
+| [Karakter Seviyesi Dil Modeli](SLM/karakter-seviyesi-dil-modeli) | Wikipedia TR → Bigram/LSTM → metin üretimi |
+
 ## Nasıl Çalıştırılır
 
 ### NLP Projeleri (Python script)
@@ -126,14 +153,26 @@ Notebook'u açıp hücreleri sırayla çalıştırın. Her notebook bağımsızd
 │   ├── 02-log-izleyici/        # Docker Compose, 2 servis
 │   └── 03-is-emri-kuyrugu/     # Docker Compose, 3 servis + volume
 │
-└── rag/                        # RAG pratikleri
-    ├── 01-belge-tabanli-sorgulama/   # OpenAI API ile RAG
-    └── 02-yerel-vektor-indeksleme/   # Tamamen yerel RAG
-
-└── llm/                        # LLM projeleri
-    ├── 01-fine-tuning-lora/   # Fine-tuning + LoRA/QLoRA
-    ├── 02-llm-degerlendirme/  # Değerlendirme metrikleri
-    └── 03-rlhf-dpo/           # RLHF + DPO
+├── rag/                        # RAG pratikleri
+│   ├── 01-belge-tabanli-sorgulama/   # OpenAI API ile RAG
+│   └── 02-yerel-vektor-indeksleme/   # Tamamen yerel RAG
+│
+├── llm/                        # LLM projeleri
+│   ├── 01-fine-tuning-lora/   # Fine-tuning + LoRA/QLoRA
+│   ├── 02-llm-degerlendirme/  # Değerlendirme metrikleri
+│   └── 03-rlhf-dpo/           # RLHF + DPO
+│
+├── goruntu-isleme/             # Görüntü işleme
+│   ├── temel-goruntu-isleme/  # OpenCV, scipy
+│   ├── nesne-tespiti/         # YOLO, SSD
+│   └── derin-ogrenme-goruntu/ # CNN, CIFAR-10
+│
+├── BigData/                   # Big Data
+│   ├── dagik-sistem-simulasyonu/  # HDFS, YARN, Spark
+│   └── veri-drift-tespiti/        # Drift tespiti
+│
+└── SLM/                      # Small Language Models
+    └── karakter-seviyesi-dil-modeli/  # Karakter seviyesi LM
 ```
 
 ## Gereksinimler
