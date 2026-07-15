@@ -63,14 +63,12 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 
 ## RAG Projeleri
 
-🔍 Belgelerinizden soru-cevap yapan 2 RAG sistemi. API'li ve tamamen yerel:
+🔍 Belgelerden soru-cevap yapan 2 RAG sistemi:
 
-| # | Proje | Konu | Embedding | Vektör DB | Bağımlılık |
-|---|-------|------|-----------|-----------|------------|
-| 01 | [Belge Tabanlı Sorgulama](rag/01-belge-tabanli-sorgulama) | RAG pipeline'ı adım adım kurma | OpenAI | FAISS | OpenAI API |
-| 02 | [Yerel Vektör İndeksleme](rag/02-yerel-vektor-indeksleme) | İnternetsiz, tamamen yerel RAG | HuggingFace | ChromaDB | Yok |
-
-**Not:** İlk proje RAG'ın teorisini, ikinci proje production'a yakın kullanımını gösterir.
+| # | Proje | Embedding | Vektör DB | Bağımlılık |
+|---|-------|-----------|-----------|------------|
+| 01 | [Belge Tabanlı Sorgulama](rag/01-belge-tabanli-sorgulama) | OpenAI | FAISS | OpenAI API |
+| 02 | [Yerel Vektör İndeksleme](rag/02-yerel-vektor-indeksleme) | HuggingFace | ChromaDB | Yok |
 
 ## Nasıl Çalıştırılır
 
