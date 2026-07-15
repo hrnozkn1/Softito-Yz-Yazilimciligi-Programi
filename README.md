@@ -1,6 +1,6 @@
 # Softito YZ Yazılımcılığı Programı
 
-NLP, ML, Docker, RAG, LLM, Görüntü İşleme, Big Data ve SLM alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
+NLP, ML, Docker, RAG, LLM, Görüntü İşleme, Big Data, SLM ve Anomali Tespiti alanlarında projeler.
 
 ## NLP Projeleri
 
@@ -98,6 +98,7 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 |-------|------|
 | [Dağıtık Sistem Simülasyonu](BigData/dagik-sistem-simulasyonu) | HDFS, YARN, Spark thread simülasyonları |
 | [Veri Drift Tespiti](BigData/veri-drift-tespiti) | KS-test, JS Divergence, Wasserstein |
+| [ETL / Airflow Pipeline](BigData/etl-airflow-pipeline) | DAG, Task, Operator, XCom simülasyonu |
 
 ## SLM
 
@@ -106,6 +107,16 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 | Proje | Konu |
 |-------|------|
 | [Karakter Seviyesi Dil Modeli](SLM/karakter-seviyesi-dil-modeli) | Wikipedia TR → Bigram/LSTM → metin üretimi |
+
+## Anomali Tespiti
+
+🚨 Isolation Forest, One-Class SVM ve COPOD ile anomali tespiti:
+
+| Proje | Algoritma | Yaklaşım |
+|-------|-----------|----------|
+| [Isolation Forest](anomali-tespiti/isolation-forest) | Ağaç tabanlı | Erken izole etme |
+| [One-Class SVM](anomali-tespiti/one-class-svm) | Kernel tabanlı | Normal bölge sınırı |
+| [COPOD](anomali-tespiti/copod) | Olasılıksal | Copula bağımlılık modeli |
 
 ## Nasıl Çalıştırılır
 
@@ -169,10 +180,16 @@ Notebook'u açıp hücreleri sırayla çalıştırın. Her notebook bağımsızd
 │
 ├── BigData/                   # Big Data
 │   ├── dagik-sistem-simulasyonu/  # HDFS, YARN, Spark
-│   └── veri-drift-tespiti/        # Drift tespiti
+│   ├── veri-drift-tespiti/        # Drift tespiti
+│   └── etl-airflow-pipeline/      # ETL simülasyonu
 │
 └── SLM/                      # Small Language Models
     └── karakter-seviyesi-dil-modeli/  # Karakter seviyesi LM
+
+├── anomali-tespiti/           # Anomali Tespiti
+│   ├── isolation-forest/      # Isolation Forest
+│   ├── one-class-svm/         # One-Class SVM
+│   └── copod/                 # COPOD
 ```
 
 ## Gereksinimler
