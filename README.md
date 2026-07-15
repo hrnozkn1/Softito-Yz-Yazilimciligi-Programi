@@ -1,6 +1,6 @@
 # Softito YZ Yazılımcılığı Programı
 
-NLP (Doğal Dil İşleme), ML (Makine Öğrenmesi), Docker ve RAG ile konteynerizasyon alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
+NLP (Doğal Dil İşleme), ML (Makine Öğrenmesi), Docker, RAG ve LLM alanlarında sıfırdan ileri seviyeye uzanan projeler. Her proje bağımsız çalışır: çalıştır, eğit, grafikleri gör, karşılaştır.
 
 ## NLP Projeleri
 
@@ -70,6 +70,16 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 | 01 | [Belge Tabanlı Sorgulama](rag/01-belge-tabanli-sorgulama) | OpenAI | FAISS | OpenAI API |
 | 02 | [Yerel Vektör İndeksleme](rag/02-yerel-vektor-indeksleme) | HuggingFace | ChromaDB | Yok |
 
+## LLM Projeleri
+
+🤖 Büyük dil modelleri: fine-tuning, değerlendirme ve hizalama:
+
+| # | Proje | İçerik |
+|---|-------|--------|
+| 01 | [Fine-tuning + LoRA/QLoRA](llm/01-fine-tuning-lora) | Transformer → LoRA → QLoRA → optimizasyon → çıkarım |
+| 02 | [LLM Değerlendirme](llm/02-llm-degerlendirme) | Sampling → BLEU/ROUGE/Perplexity → LLM-as-Judge |
+| 03 | [RLHF + DPO](llm/03-rlhf-dpo) | Reward model → PPO → DPO → karşılaştırma |
+
 ## Nasıl Çalıştırılır
 
 ### NLP Projeleri (Python script)
@@ -119,6 +129,11 @@ Notebook'u açıp hücreleri sırayla çalıştırın. Her notebook bağımsızd
 └── rag/                        # RAG pratikleri
     ├── 01-belge-tabanli-sorgulama/   # OpenAI API ile RAG
     └── 02-yerel-vektor-indeksleme/   # Tamamen yerel RAG
+
+└── llm/                        # LLM projeleri
+    ├── 01-fine-tuning-lora/   # Fine-tuning + LoRA/QLoRA
+    ├── 02-llm-degerlendirme/  # Değerlendirme metrikleri
+    └── 03-rlhf-dpo/           # RLHF + DPO
 ```
 
 ## Gereksinimler
