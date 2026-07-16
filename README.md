@@ -79,16 +79,20 @@ TTC-4900 dengeli bir Türkçe haber verisi (her sınıftan 700 haber). AG News i
 | 01 | [Fine-tuning + LoRA/QLoRA](llm/01-fine-tuning-lora) | Transformer → LoRA → QLoRA → optimizasyon → çıkarım |
 | 02 | [LLM Değerlendirme](llm/02-llm-degerlendirme) | Sampling → BLEU/ROUGE/Perplexity → LLM-as-Judge |
 | 03 | [RLHF + DPO](llm/03-rlhf-dpo) | Reward model → PPO → DPO → karşılaştırma |
+| 04 | [Prompt Engineering](llm/04-prompt-engineering) | Zero-shot, few-shot, CoT, system prompt |
+| 05 | [LangChain](llm/05-langchain) | LCEL chain, memory, tool, agent |
 
 ## Görüntü İşleme
 
-🖼️ OpenCV, PyTorch ile görüntü işleme ve nesne tespiti:
+🖼️ OpenCV, PyTorch ile görüntü işleme ve derin öğrenme:
 
 | Proje | Konu | Veri Seti |
 |-------|------|-----------|
-| [Temel Görüntü İşleme](goruntu-isleme/temel-goruntu-isleme) | Piksel, filtre, kenar, morfoloji | scipy + kendi fotoğrafların |
+| [Temel Görüntü İşleme](goruntu-isleme/temel-goruntu-isleme) | Piksel, filtre, kenar, morfoloji | scipy face/ascent |
 | [Nesne Tespiti](goruntu-isleme/nesne-tespiti) | YOLO/SSD ile nesne bulma | COCO128 |
 | [Derin Öğrenme Görüntü](goruntu-isleme/derin-ogrenme-goruntu) | CNN ile sınıflandırma | CIFAR-10 |
+| [Autoencoder](goruntu-isleme/autoencoder) | Boyut indirgeme, gürültü giderme | MNIST |
+| [GAN](goruntu-isleme/gan) | Üretici çekişmeli ağ | MNIST |
 
 ## Big Data
 
